@@ -1,10 +1,3 @@
-/**
- * @brief     Power management module
- * @file      pm_device_module.c
- * @date      2025-05-09
- * @copyright Copyright (c) 2025 Motive Technologies, Inc. All rights reserved.
-  */
-
 #include <zephyr/init.h>
 #include <zephyr/device.h>
 #include <zephyr/pm/device.h>
