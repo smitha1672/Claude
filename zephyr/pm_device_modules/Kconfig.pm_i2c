@@ -1,0 +1,68 @@
+# Kconfig.pm_i2c - Power management options for I2C bus
+
+
+menuconfig PM_DEVICE_I2C
+	bool "I2C power management support"
+	depends on I2C && PM_DEVICE
+	default y if PM_DEVICE
+	help
+	  Enable power management for I2C devices.
+	  This provides reference-counting and automatic
+	  bus power management for I2C peripherals.
+
+if PM_DEVICE_I2C
+
+config PM_DEVICE_I2C_INIT_PRIORITY
+	int "I2C power management initialization priority"
+	default 80
+	help
+	  Initialization priority for the I2C power management.
+	  Must be higher than the I2C controller initialization
+	  priority but lower than device drivers using I2C.
+
+config PM_DEVICE_I2C_AUTO_SUSPEND
+	bool "Enable automatic I2C bus suspension"
+	default y
+	help
+	  If enabled, I2C buses will be automatically suspended
+	  when no devices are using them.
+
+config PM_DEVICE_I2C_AUTO_SUSPEND_TIMEOUT_MS
+	int "I2C auto-suspend timeout (ms)"
+	depends on PM_DEVICE_I2C_AUTO_SUSPEND
+	default 1000
+	help
+	  Time in milliseconds to wait after last I2C transaction
+	  before suspending an I2C bus.
+
+config PM_DEVICE_I2C_LOG_LEVEL
+	int "I2C power management log level"
+	depends on LOG
+	default 0
+	range 0 4
+	help
+	  Sets log level for I2C power management.
+	  Levels are:
+	  - 0 OFF
+	  - 1 ERROR
+	  - 2 WARNING
+	  - 3 INFO
+	  - 4 DEBUG
+
+config I2C_RECOVERY
+	bool "I2C bus recovery support"
+	default y
+	help
+	  Enable support for I2C bus recovery after deep sleep
+	  or power off states. This allows the I2C bus to be
+	  reinitialized properly in hardware.
+
+config PM_DEVICE_I2C_SYSTEM_OFF_RECOVERY
+	bool "Enable I2C recovery after SYSTEM_OFF"
+	depends on PM_DEVICE_I2C && I2C_RECOVERY
+	default y
+	help
+	  Force I2C bus recovery after system wakes from SYSTEM_OFF
+	  state, since RAM state (including recovery flags) will be lost.
+
+endif # PM_DEVICE_I2C
