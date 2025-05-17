@@ -1,9 +1,8 @@
 /**
- * @file
+ * @file: pm_device_i2c.c
  * @brief I2C device power management implementation
  *
  * This file provides power management implementation for I2C bus devices
- * on the nRF54L15 SoC used in the Beacon V2 project.
  */
 
 #include <zephyr/kernel.h>
@@ -594,55 +593,6 @@ int pm_i2c_write_read_dt(const struct i2c_dt_spec *spec,
     /* Release I2C bus after operation */
     _pm_device_i2c_release(spec->bus);
 
-    return ret;
-}
-
-/**
- * @brief Function to handle pre-sleep preparation for connected I2C devices
- *
- * Called before system transitions to sleep states to allow devices
- * on the I2C bus to prepare for sleep.
- *
- * @param dev The I2C device
- * @return 0 on success, negative errno on failure
- */
-int pm_device_i2c_prepare_for_sleep(const struct device *dev)
-{
-    struct pm_device_i2c_context *ctx = dev->data;
-    int ret = 0;
-
-    k_mutex_lock(&ctx->lock, K_FOREVER);
-
-    /* Mark that recovery will be needed after sleep */
-    ctx->needs_recovery = true;
-
-    k_mutex_unlock(&ctx->lock);
-    return ret;
-}
-
-/**
- * @brief Function to handle post-sleep recovery for connected I2C devices
- *
- * Called after system wakes from sleep states to reinitialize devices
- * on the I2C bus.
- *
- * @param dev The I2C device
- * @return 0 on success, negative errno on failure
- */
-int pm_device_i2c_recover_from_sleep(const struct device *dev)
-{
-    struct pm_device_i2c_context *ctx = dev->data;
-    int ret = 0;
-
-    k_mutex_lock(&ctx->lock, K_FOREVER);
-
-    /* Perform recovery if needed */
-    if (ctx->needs_recovery) {
-        ret = pm_device_i2c_recover(dev);
-        ctx->needs_recovery = false;
-    }
-
-    k_mutex_unlock(&ctx->lock);
     return ret;
 }
 
