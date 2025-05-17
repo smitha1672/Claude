@@ -1,9 +1,3 @@
-/*
- * Copyright (c) 2025 Motive
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 /**
  * @file
  * @brief I2C device power management implementation
