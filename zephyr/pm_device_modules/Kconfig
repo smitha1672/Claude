@@ -1,9 +1,4 @@
 #
-# Shared PM Device Modules
-#
-# Copyright (c) 2025 Motive Technologies, Inc.
-# All rights reserved.
-#
 # This file is part of the Beacon V2 firmware project.
 # It defines configuration options for shared power management device modules.
 #
