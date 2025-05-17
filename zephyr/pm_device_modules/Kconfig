@@ -1,8 +1,3 @@
-#
-# This file is part of the Beacon V2 firmware project.
-# It defines configuration options for shared power management device modules.
-#
-
 menu "Shared PM Device Modules"
 
 config SHARED_PM_DEVICE_MODULES
