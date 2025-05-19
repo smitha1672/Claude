@@ -1,350 +1,291 @@
-/**
- * Copyright (c) 2025, Motive
+/*
+ * @file    sky66112.c
+ * @brief   Driver for Skyworks SKY66112-11 FEM used in Beacon V2
  *
- * SPDX-License-Identifier: Proprietary
- */
-
-/**
- * @file sky66112.c
- * @brief Driver for Skyworks SKY66112-11 RF front-end module
- *
- * This module provides control of the SKY66112-11 FEM for the Beacon V2 project
+ * @copyright Copyright (c) 2025 Motive Technologies, Inc.
  */
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/pm/device.h>
-#include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
-
-#include "sky66112.h"
+#include <fem/sky66112.h>
 
 LOG_MODULE_REGISTER(sky66112, CONFIG_SKY66112_LOG_LEVEL);
 
-/* Timing constants (in microseconds) */
-#define SKY66112_T_CSD_SETUP_US   10  /* CSD setup time */
-#define SKY66112_T_MODE_SETUP_US   5  /* Mode switch setup time */
+/* Static global variables (using camelCase, no prefix) */
+static const struct device *femDevice;
+static const struct gpio_dt_spec csdPin;
+static const struct gpio_dt_spec cpsPin;
+static const struct gpio_dt_spec crxPin;
+static const struct gpio_dt_spec ctxPin;
+static const struct gpio_dt_spec chlPin;
+static const struct gpio_dt_spec antSelPin;
 
 /**
- * @brief Configure all GPIO pins for the SKY66112
+ * @brief Initialize the SKY66112-11 FEM.
  *
- * @param dev Device pointer to the SKY66112 device
- * @return 0 if successful, negative errno code otherwise
+ * This function configures the GPIOs connected to the SKY66112-11 FEM
+ * and sets the initial state to sleep mode.
+ *
+ * @return 0 on success, negative error code otherwise
  */
-static int _configure_gpios(const struct device *dev)
+int sky66112Init(void)
 {
-    const struct sky66112_config *config = dev->config;
-    int ret;
+    int err;
 
-    /* Configure CSD GPIO */
-    if (!gpio_is_ready_dt(&config->csd_gpio)) {
-        LOG_ERR("CSD GPIO device not ready");
+    /* Get device from device tree */
+    femDevice = DEVICE_DT_GET(DT_NODELABEL(sky66112_fem));
+    if (!device_is_ready(femDevice)) {
+        LOG_ERR("SKY66112-11 FEM device not ready");
         return -ENODEV;
     }
-    ret = gpio_pin_configure_dt(&config->csd_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure CSD GPIO: %d", ret);
-        return ret;
+
+    /* Configure GPIO pins */
+    struct gpio_dt_spec csdPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), csd_gpios);
+    struct gpio_dt_spec cpsPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), cps_gpios);
+    struct gpio_dt_spec crxPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), crx_gpios);
+    struct gpio_dt_spec ctxPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), ctx_gpios);
+    struct gpio_dt_spec chlPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), chl_gpios);
+    struct gpio_dt_spec antSelPin = GPIO_DT_SPEC_GET(DT_NODELABEL(sky66112_fem), ant_sel_gpios);
+
+    /* Initialize pins as outputs */
+    err = gpio_pin_configure_dt(&csdPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure CSD pin (err %d)", err);
+        return err;
     }
 
-    /* Configure CPS GPIO */
-    if (!gpio_is_ready_dt(&config->cps_gpio)) {
-        LOG_ERR("CPS GPIO device not ready");
-        return -ENODEV;
-    }
-    ret = gpio_pin_configure_dt(&config->cps_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure CPS GPIO: %d", ret);
-        return ret;
+    err = gpio_pin_configure_dt(&cpsPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure CPS pin (err %d)", err);
+        return err;
     }
 
-    /* Configure CRX GPIO */
-    if (!gpio_is_ready_dt(&config->crx_gpio)) {
-        LOG_ERR("CRX GPIO device not ready");
-        return -ENODEV;
-    }
-    ret = gpio_pin_configure_dt(&config->crx_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure CRX GPIO: %d", ret);
-        return ret;
+    err = gpio_pin_configure_dt(&crxPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure CRX pin (err %d)", err);
+        return err;
     }
 
-    /* Configure CTX GPIO */
-    if (!gpio_is_ready_dt(&config->ctx_gpio)) {
-        LOG_ERR("CTX GPIO device not ready");
-        return -ENODEV;
-    }
-    ret = gpio_pin_configure_dt(&config->ctx_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure CTX GPIO: %d", ret);
-        return ret;
+    err = gpio_pin_configure_dt(&ctxPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure CTX pin (err %d)", err);
+        return err;
     }
 
-    /* Configure CHL GPIO */
-    if (!gpio_is_ready_dt(&config->chl_gpio)) {
-        LOG_ERR("CHL GPIO device not ready");
-        return -ENODEV;
-    }
-    ret = gpio_pin_configure_dt(&config->chl_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure CHL GPIO: %d", ret);
-        return ret;
+    err = gpio_pin_configure_dt(&chlPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure CHL pin (err %d)", err);
+        return err;
     }
 
-    /* Configure ANT_SEL GPIO */
-    if (!gpio_is_ready_dt(&config->ant_sel_gpio)) {
-        LOG_ERR("ANT_SEL GPIO device not ready");
-        return -ENODEV;
-    }
-    ret = gpio_pin_configure_dt(&config->ant_sel_gpio, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
-        LOG_ERR("Failed to configure ANT_SEL GPIO: %d", ret);
-        return ret;
+    err = gpio_pin_configure_dt(&antSelPin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure ANT_SEL pin (err %d)", err);
+        return err;
     }
 
+    /* Set to sleep mode by default */
+    err = sky66112SetMode(SKY66112_MODE_SLEEP);
+    if (err) {
+        LOG_ERR("Failed to set FEM to sleep mode (err %d)", err);
+        return err;
+    }
+
+    LOG_INF("SKY66112-11 FEM initialized successfully");
     return 0;
 }
 
-int sky66112Init(const struct device *dev)
+/**
+ * @brief Set the operating mode of the SKY66112-11 FEM.
+ *
+ * @param mode Operating mode (see SKY66112_MODE_* defines)
+ * @return 0 on success, negative error code otherwise
+ */
+int sky66112SetMode(enum sky66112_mode mode)
 {
-    struct sky66112_data *data = dev->data;
-    int ret;
+    int err;
 
-    /* Configure all GPIOs */
-    ret = _configure_gpios(dev);
-    if (ret < 0) {
-        return ret;
-    }
-
-    /* Set initial state (sleep mode) */
-    data->current_mode = SKY66112_MODE_SLEEP;
-    data->current_antenna = SKY66112_ANT1;
-    
-    LOG_INF("SKY66112 initialized");
-    return 0;
-}
-
-int sky66112SetMode(const struct device *dev, Sky66112Mode mode)
-{
-    const struct sky66112_config *config = dev->config;
-    struct sky66112_data *data = dev->data;
-    int ret;
-
-    /* First, ensure the device is enabled by setting CSD high */
-    ret = gpio_pin_set_dt(&config->csd_gpio, 1);
-    if (ret < 0) {
-        LOG_ERR("Failed to enable SKY66112 (CSD): %d", ret);
-        return ret;
-    }
-    k_busy_wait(SKY66112_T_CSD_SETUP_US);
-
-    /* Configure mode-specific pins */
     switch (mode) {
     case SKY66112_MODE_SLEEP:
-        /* Turn everything off for sleep mode */
-        ret = gpio_pin_set_dt(&config->cps_gpio, 0);
-        if (ret < 0) {
-            return ret;
+        /* Mode 0: All off (sleep mode) - CSD=0, others don't matter */
+        err = gpio_pin_set_dt(&csdPin, 0);
+        if (err) {
+            LOG_ERR("Failed to set CSD pin (err %d)", err);
+            return err;
         }
-        ret = gpio_pin_set_dt(&config->crx_gpio, 0);
-        if (ret < 0) {
-            return ret;
-        }
-        ret = gpio_pin_set_dt(&config->ctx_gpio, 0);
-        if (ret < 0) {
-            return ret;
-        }
-        ret = gpio_pin_set_dt(&config->chl_gpio, 0);
-        if (ret < 0) {
-            return ret;
-        }
-        ret = gpio_pin_set_dt(&config->csd_gpio, 0);  /* Finally, disable the chip */
-        if (ret < 0) {
-            return ret;
-        }
+        LOG_DBG("FEM set to sleep mode");
         break;
 
-    case SKY66112_MODE_RX:
-        /* Set bypass mode (CPS low) */
-        ret = gpio_pin_set_dt(&config->cps_gpio, 0);
-        if (ret < 0) {
-            return ret;
+    case SKY66112_MODE_RX_LNA:
+        /* Mode 1: Receive LNA mode - CSD=1, CPS=0, CRX=1, CTX=0 */
+        err = gpio_pin_set_dt(&cpsPin, 0);
+        if (err) {
+            return err;
         }
-        /* Disable TX */
-        ret = gpio_pin_set_dt(&config->ctx_gpio, 0);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&crxPin, 1);
+        if (err) {
+            return err;
         }
-        /* Set power mode low for RX */
-        ret = gpio_pin_set_dt(&config->chl_gpio, 0);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&ctxPin, 0);
+        if (err) {
+            return err;
         }
-        k_busy_wait(SKY66112_T_MODE_SETUP_US);
-        /* Enable RX */
-        ret = gpio_pin_set_dt(&config->crx_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        /* Wake up device last */
+        err = gpio_pin_set_dt(&csdPin, 1);
+        if (err) {
+            return err;
         }
+
+        LOG_DBG("FEM set to RX LNA mode");
         break;
 
-    case SKY66112_MODE_TX_LOW:
-        /* Disable RX */
-        ret = gpio_pin_set_dt(&config->crx_gpio, 0);
-        if (ret < 0) {
-            return ret;
+    case SKY66112_MODE_TX_HIGH_POWER:
+        /* Mode 2: Transmit high-power mode - CSD=1, CPS=0, CTX=1, CHL=1 */
+        err = gpio_pin_set_dt(&cpsPin, 0);
+        if (err) {
+            return err;
         }
-        /* Set power mode low for low-power TX */
-        ret = gpio_pin_set_dt(&config->chl_gpio, 0);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&chlPin, 1);
+        if (err) {
+            return err;
         }
-        /* Set PA mode (CPS high) */
-        ret = gpio_pin_set_dt(&config->cps_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&ctxPin, 1);
+        if (err) {
+            return err;
         }
-        k_busy_wait(SKY66112_T_MODE_SETUP_US);
-        /* Enable TX */
-        ret = gpio_pin_set_dt(&config->ctx_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        /* Wake up device last */
+        err = gpio_pin_set_dt(&csdPin, 1);
+        if (err) {
+            return err;
         }
+
+        LOG_DBG("FEM set to TX high-power mode");
         break;
 
-    case SKY66112_MODE_TX_HIGH:
-        /* Disable RX */
-        ret = gpio_pin_set_dt(&config->crx_gpio, 0);
-        if (ret < 0) {
-            return ret;
+    case SKY66112_MODE_TX_LOW_POWER:
+        /* Mode 3: Transmit low-power mode - CSD=1, CPS=0, CTX=1, CHL=0 */
+        err = gpio_pin_set_dt(&cpsPin, 0);
+        if (err) {
+            return err;
         }
-        /* Set power mode high for high-power TX */
-        ret = gpio_pin_set_dt(&config->chl_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&chlPin, 0);
+        if (err) {
+            return err;
         }
-        /* Set PA mode (CPS high) */
-        ret = gpio_pin_set_dt(&config->cps_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        err = gpio_pin_set_dt(&ctxPin, 1);
+        if (err) {
+            return err;
         }
-        k_busy_wait(SKY66112_T_MODE_SETUP_US);
-        /* Enable TX */
-        ret = gpio_pin_set_dt(&config->ctx_gpio, 1);
-        if (ret < 0) {
-            return ret;
+
+        /* Wake up device last */
+        err = gpio_pin_set_dt(&csdPin, 1);
+        if (err) {
+            return err;
         }
+
+        LOG_DBG("FEM set to TX low-power mode");
+        break;
+
+    case SKY66112_MODE_RX_BYPASS:
+        /* Mode 4: Receive bypass mode - CSD=1, CPS=1, CRX=1, CTX=0 */
+        err = gpio_pin_set_dt(&cpsPin, 1);
+        if (err) {
+            return err;
+        }
+
+        err = gpio_pin_set_dt(&crxPin, 1);
+        if (err) {
+            return err;
+        }
+
+        err = gpio_pin_set_dt(&ctxPin, 0);
+        if (err) {
+            return err;
+        }
+
+        /* Wake up device last */
+        err = gpio_pin_set_dt(&csdPin, 1);
+        if (err) {
+            return err;
+        }
+
+        LOG_DBG("FEM set to RX bypass mode");
+        break;
+
+    case SKY66112_MODE_TX_BYPASS:
+        /* Mode 5: Transmit bypass mode - CSD=1, CPS=1, CTX=1 */
+        err = gpio_pin_set_dt(&cpsPin, 1);
+        if (err) {
+            return err;
+        }
+
+        err = gpio_pin_set_dt(&ctxPin, 1);
+        if (err) {
+            return err;
+        }
+
+        /* Wake up device last */
+        err = gpio_pin_set_dt(&csdPin, 1);
+        if (err) {
+            return err;
+        }
+
+        LOG_DBG("FEM set to TX bypass mode");
         break;
 
     default:
-        LOG_ERR("Invalid mode: %d", mode);
+        LOG_ERR("Invalid FEM mode: %d", mode);
         return -EINVAL;
     }
 
-    data->current_mode = mode;
-    LOG_DBG("SKY66112 mode set to %d", mode);
     return 0;
 }
 
-Sky66112Mode sky66112GetMode(const struct device *dev)
+/**
+ * @brief Select the active antenna for the SKY66112-11 FEM.
+ *
+ * @param antenna Antenna selection (SKY66112_ANTENNA_1 or SKY66112_ANTENNA_2)
+ * @return 0 on success, negative error code otherwise
+ */
+int sky66112SelectAntenna(enum sky66112_antenna antenna)
 {
-    struct sky66112_data *data = dev->data;
-    return data->current_mode;
-}
+    int err;
 
-int sky66112SelectAntenna(const struct device *dev, Sky66112Antenna antenna)
-{
-    const struct sky66112_config *config = dev->config;
-    struct sky66112_data *data = dev->data;
-    int ret;
-
-    /* Set antenna selection pin */
-    ret = gpio_pin_set_dt(&config->ant_sel_gpio, antenna == SKY66112_ANT2);
-    if (ret < 0) {
-        LOG_ERR("Failed to set antenna selection: %d", ret);
-        return ret;
-    }
-
-    data->current_antenna = antenna;
-    LOG_DBG("SKY66112 antenna set to %d", antenna);
-    return 0;
-}
-
-Sky66112Antenna sky66112GetAntenna(const struct device *dev)
-{
-    struct sky66112_data *data = dev->data;
-    return data->current_antenna;
-}
-
-uint8_t sky66112GetTxGain(const struct device *dev)
-{
-    struct sky66112_data *data = dev->data;
-
-    if (data->current_mode == SKY66112_MODE_TX_HIGH) {
-        return 21; /* Fixed value for high-power mode: +21 dBm */
-    } else if (data->current_mode == SKY66112_MODE_TX_LOW) {
-        return 16; /* Fixed value for low-power mode: +16 dBm */
-    } else {
-        return 0; /* Not in TX mode */
-    }
-}
-
-uint8_t sky66112GetRxGain(const struct device *dev)
-{
-    struct sky66112_data *data = dev->data;
-
-    if (data->current_mode == SKY66112_MODE_RX) {
-        return 11; /* Fixed value for RX mode: +11 dB */
-    } else {
-        return 0; /* Not in RX mode */
-    }
-}
-
-int sky66112PmControl(const struct device *dev, enum pm_device_action action)
-{
-    int ret = 0;
-
-    switch (action) {
-    case PM_DEVICE_ACTION_RESUME:
-        /* Resume operation by initializing again */
-        ret = sky66112Init(dev);
+    switch (antenna) {
+    case SKY66112_ANTENNA_1:
+        /* ANT_SEL = 0 for ANT1 */
+        err = gpio_pin_set_dt(&antSelPin, 0);
+        if (err) {
+            LOG_ERR("Failed to select antenna 1 (err %d)", err);
+            return err;
+        }
+        LOG_DBG("Selected antenna 1");
         break;
-    case PM_DEVICE_ACTION_SUSPEND:
-        /* Suspend operation by setting to sleep mode */
-        ret = sky66112SetMode(dev, SKY66112_MODE_SLEEP);
+
+    case SKY66112_ANTENNA_2:
+        /* ANT_SEL = 1 for ANT2 */
+        err = gpio_pin_set_dt(&antSelPin, 1);
+        if (err) {
+            LOG_ERR("Failed to select antenna 2 (err %d)", err);
+            return err;
+        }
+        LOG_DBG("Selected antenna 2");
         break;
+
     default:
-        ret = -ENOTSUP;
+        LOG_ERR("Invalid antenna selection: %d", antenna);
+        return -EINVAL;
     }
 
-    return ret;
+    return 0;
 }
-
-#define SKY66112_INIT(inst)                                                    \
-    static const struct sky66112_config sky66112_config_##inst = {            \
-        .csd_gpio = GPIO_DT_SPEC_INST_GET(inst, csd_gpios),                  \
-        .cps_gpio = GPIO_DT_SPEC_INST_GET(inst, cps_gpios),                  \
-        .crx_gpio = GPIO_DT_SPEC_INST_GET(inst, crx_gpios),                  \
-        .ctx_gpio = GPIO_DT_SPEC_INST_GET(inst, ctx_gpios),                  \
-        .chl_gpio = GPIO_DT_SPEC_INST_GET(inst, chl_gpios),                  \
-        .ant_sel_gpio = GPIO_DT_SPEC_INST_GET(inst, ant_sel_gpios),          \
-    };                                                                        \
-                                                                              \
-    static struct sky66112_data sky66112_data_##inst = {                      \
-        .current_mode = SKY66112_MODE_SLEEP,                                 \
-        .current_antenna = SKY66112_ANT1,                                    \
-    };                                                                        \
-                                                                              \
-    PM_DEVICE_DT_INST_DEFINE(inst, sky66112PmControl);                       \
-                                                                              \
-    DEVICE_DT_INST_DEFINE(inst,                                              \
-                        sky66112Init,                                        \
-                        PM_DEVICE_DT_INST_GET(inst),                         \
-                        &sky66112_data_##inst,                               \
-                        &sky66112_config_##inst,                             \
-                        POST_KERNEL,                                         \
-                        CONFIG_SKY66112_INIT_PRIORITY,                       \
-                        NULL);
-
-DT_INST_FOREACH_STATUS_OKAY(SKY66112_INIT)
