@@ -6,9 +6,10 @@
 
 /**
  * @file sky66112.h
- * @brief Driver for Skyworks SKY66112-11 RF front-end module
+ * @brief Driver for Skyworks SKY66112-11 2.4 GHz RF front-end module
  *
- * This module provides control of the SKY66112-11 FEM for the Beacon V2 project
+ * This module provides control of the SKY66112-11 FEM for Zigbee/Thread/Bluetooth
+ * applications in the Beacon V2 project.
  */
 
 #ifndef SKY66112_H_
@@ -17,15 +18,20 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/pm/device.h>
 
 /**
  * @brief SKY66112 operating modes
+ * 
+ * Modes are defined according to Table 6 in the SKY66112-11 datasheet
  */
 typedef enum {
-    SKY66112_MODE_SLEEP,     /**< Sleep mode (low power) */
-    SKY66112_MODE_RX,        /**< Receive mode */
-    SKY66112_MODE_TX_LOW,    /**< Transmit mode with low power */
-    SKY66112_MODE_TX_HIGH,   /**< Transmit mode with high power */
+    SKY66112_MODE_SLEEP,       /**< Mode 0: Sleep mode (all off) */
+    SKY66112_MODE_RX_LNA,      /**< Mode 1: Receive LNA mode */
+    SKY66112_MODE_TX_HIGH,     /**< Mode 2: Transmit high-power mode (+21 dBm) */
+    SKY66112_MODE_TX_LOW,      /**< Mode 3: Transmit low-power mode (+16 dBm) */
+    SKY66112_MODE_RX_BYPASS,   /**< Mode 4: Receive bypass mode */
+    SKY66112_MODE_TX_BYPASS    /**< Mode 5: Transmit bypass mode */
 } Sky66112Mode;
 
 /**
