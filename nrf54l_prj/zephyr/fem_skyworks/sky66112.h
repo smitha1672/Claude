@@ -57,18 +57,6 @@ struct sky66112_config {
     
     /** GPIO for antenna selection (ANT_SEL) */
     struct gpio_dt_spec ant_sel_gpio;
-    
-    /** TX gain in high power mode (dB) */
-    uint8_t tx_gain_high;
-    
-    /** TX gain in low power mode (dB) */
-    uint8_t tx_gain_low;
-    
-    /** RX gain (dB) */
-    uint8_t rx_gain;
-    
-    /** Fast switch time (ns) */
-    uint16_t fast_switch_time;
 };
 
 /**
