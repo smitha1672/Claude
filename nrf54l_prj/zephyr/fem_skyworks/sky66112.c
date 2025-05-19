@@ -279,13 +279,12 @@ Sky66112Antenna sky66112GetAntenna(const struct device *dev)
 
 uint8_t sky66112GetTxGain(const struct device *dev)
 {
-    const struct sky66112_config *config = dev->config;
     struct sky66112_data *data = dev->data;
 
     if (data->current_mode == SKY66112_MODE_TX_HIGH) {
-        return config->tx_gain_high;
+        return 21; /* Fixed value for high-power mode: +21 dBm */
     } else if (data->current_mode == SKY66112_MODE_TX_LOW) {
-        return config->tx_gain_low;
+        return 16; /* Fixed value for low-power mode: +16 dBm */
     } else {
         return 0; /* Not in TX mode */
     }
@@ -293,11 +292,10 @@ uint8_t sky66112GetTxGain(const struct device *dev)
 
 uint8_t sky66112GetRxGain(const struct device *dev)
 {
-    const struct sky66112_config *config = dev->config;
     struct sky66112_data *data = dev->data;
 
     if (data->current_mode == SKY66112_MODE_RX) {
-        return config->rx_gain;
+        return 11; /* Fixed value for RX mode: +11 dB */
     } else {
         return 0; /* Not in RX mode */
     }
@@ -331,10 +329,6 @@ int sky66112PmControl(const struct device *dev, enum pm_device_action action)
         .ctx_gpio = GPIO_DT_SPEC_INST_GET(inst, ctx_gpios),                  \
         .chl_gpio = GPIO_DT_SPEC_INST_GET(inst, chl_gpios),                  \
         .ant_sel_gpio = GPIO_DT_SPEC_INST_GET(inst, ant_sel_gpios),          \
-        .tx_gain_high = DT_INST_PROP(inst, tx_gain_high),                    \
-        .tx_gain_low = DT_INST_PROP(inst, tx_gain_low),                      \
-        .rx_gain = DT_INST_PROP(inst, rx_gain),                              \
-        .fast_switch_time = DT_INST_PROP(inst, fast_switch_time),            \
     };                                                                        \
                                                                               \
     static struct sky66112_data sky66112_data_##inst = {                      \
