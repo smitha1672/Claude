@@ -1,0 +1,17 @@
+/* Define the SKY66112 FEM node here */
+sky66112_fem: sky66112 {
+    compatible = "motive,skyworks-66112-fem";
+    status = "okay";
+    /* GPIO connections to FEM control pins */
+    csd-gpios = <&gpio2 9 GPIO_ACTIVE_HIGH>;       /* P2.09: SKYFEM CSD - Chip shutdown control */
+    cps-gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;       /* P2.03: SKYFEM CPS - PA/LNA vs bypass mode selection */
+    crx-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;      /* P2.10: SKYFEM CRX - Receive enable */
+    ctx-gpios = <&gpio2 4 GPIO_ACTIVE_HIGH>;       /* P2.04: SKYFEM CTX - Transmit enable */
+    chl-gpios = <&gpio2 5 GPIO_ACTIVE_HIGH>;       /* P2.05: SKYFEM CHL - Power mode selection */
+    ant-sel-gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;   /* P2.08: SKYFEM ANT_SEL - Antenna selection */
+    /* Default configuration parameters */
+    tx-gain-high = <21>; /* +21 dBm in high-power mode */
+    tx-gain-low = <16>;  /* +16 dBm in low-power mode */
+    rx-gain = <11>;      /* +11 dB RX gain */
+    fast-switch-time = <800>; /* 800 ns switch time */
+};
