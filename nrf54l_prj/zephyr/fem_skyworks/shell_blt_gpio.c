@@ -282,14 +282,15 @@ static int cmd_fem_all_pins(const struct shell *shell, size_t argc, char **argv)
     return 0;
 }
 
-SHELL_STATIC_SUBCMD_SET_CREATE(blt_gpio_test_cmds,
+SHELL_STATIC_SUBCMD_SET_CREATE(blt_fem_gpio_test_cmds,
     SHELL_CMD(csd, NULL, "Set FEM CSD pin (0|1)", cmd_fem_csd),
     SHELL_CMD(cps, NULL, "Set FEM CPS pin (0|1)", cmd_fem_cps),
     SHELL_CMD(crx, NULL, "Set FEM CRX pin (0|1)", cmd_fem_crx),
     SHELL_CMD(ctx, NULL, "Set FEM CTX pin (0|1)", cmd_fem_ctx),
     SHELL_CMD(chl, NULL, "Set FEM CHL pin (0|1)", cmd_fem_chl),
     SHELL_CMD(ant_sel, NULL, "Set FEM ANT_SEL pin (0|1)", cmd_fem_ant_sel),
-    SHELL_CMD(all_pins, NULL, "Set all FEM pins <csd> <cps> <crx> <ctx> <chl> <ant_sel>", cmd_fem_all_pins),
+    /* Fix the help text to match the implementation order */
+    SHELL_CMD(all_pins, NULL, "Set all FEM pins <cps> <ctx> <chl> <ant_sel> <csd> <crx>", cmd_fem_all_pins),
     SHELL_CMD(low_power_tx, NULL, "Set FEM to low-power TX mode", cmd_fem_low_power_tx),
     SHELL_CMD(antenna1, NULL, "Select FEM antenna 1", cmd_fem_antenna1),
     SHELL_CMD(modes, NULL, "Display FEM operating modes guide", cmd_fem_modes),
@@ -297,4 +298,4 @@ SHELL_STATIC_SUBCMD_SET_CREATE(blt_gpio_test_cmds,
 );
 
 /* Register the command */
-SHELL_CMD_REGISTER(blt_fem_gpio, &blt_fem_gpio_test_cmds, "Board Level Test: GPIO functions", NULL);
+SHELL_CMD_REGISTER(blt_fem_gpio, &blt_fem_gpio_test_cmds, "Board Level Test: SKY66112 FEM GPIO functions", NULL);
