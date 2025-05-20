@@ -79,6 +79,132 @@ static int _sky66112_init(void)
 SYS_INIT(_sky66112_init, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 
 /**
+ * @brief Set SKY66112 CSD pin state
+ * 
+ * Controls Chip Shutdown pin:
+ * 0 = Shutdown mode (disabled)
+ * 1 = Active mode (enabled)
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetCsd(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_csd, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set CSD pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 CSD pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
+ * @brief Set SKY66112 CPS pin state
+ * 
+ * Controls Power Select pin:
+ * 0 = Bypass/low-power gain path
+ * 1 = LNA path (receive mode)
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetCps(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_cps, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set CPS pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 CPS pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
+ * @brief Set SKY66112 CRX pin state
+ * 
+ * Controls Receive Enable pin:
+ * 0 = Receive disabled
+ * 1 = Receive enabled
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetCrx(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_crx, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set CRX pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 CRX pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
+ * @brief Set SKY66112 CTX pin state
+ * 
+ * Controls Transmit Enable pin:
+ * 0 = Transmit disabled
+ * 1 = Transmit enabled
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetCtx(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_ctx, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set CTX pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 CTX pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
+ * @brief Set SKY66112 CHL pin state
+ * 
+ * Controls High/Low Power Select pin:
+ * 0 = Low-power mode
+ * 1 = High-power mode
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetChl(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_chl, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set CHL pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 CHL pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
+ * @brief Set SKY66112 ANT_SEL pin state
+ * 
+ * Controls Antenna Select pin:
+ * 0 = Antenna 1 selected
+ * 1 = Antenna 2 selected
+ *
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
+ */
+int sky66112SetAntSel(uint8_t state)
+{
+    int ret = gpio_pin_set_dt(&fem_ant_sel, state);
+    if (ret < 0) {
+        LOG_ERR("Failed to set ANT_SEL pin: %d", ret);
+    } else {
+        LOG_DBG("SKY66112 ANT_SEL pin set to %d", state);
+    }
+    return ret;
+}
+
+/**
  * @brief Set SKY66112 to Transmit Low-Power Mode (Mode 3)
  *
  * Mode 3 settings (Vcc1 = 1.8 V, Vcc2 = 3.0 V, Vdd = 3.0 V, TA = +25 °C):
