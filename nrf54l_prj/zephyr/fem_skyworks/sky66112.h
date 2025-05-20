@@ -1,142 +1,120 @@
 /**
- * Copyright (c) 2025, Motive
- *
- * SPDX-License-Identifier: Proprietary
- */
-
-/**
  * @file sky66112.h
- * @brief Driver for Skyworks SKY66112-11 2.4 GHz RF front-end module
+ * @brief Driver header for the SKY66112 FEM on nRF54L15 platform.
  *
- * This module provides control of the SKY66112-11 FEM for Zigbee/Thread/Bluetooth
- * applications in the Beacon V2 project.
+ * Provides APIs to control individual pins of the SKY66112 FEM
+ * as well as setting it into various operating and antenna modes.
+ *
+ * Copyright (c) 2025 Motive
  */
 
 #ifndef SKY66112_H_
 #define SKY66112_H_
 
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/pm/device.h>
+#include <stdint.h>
 
 /**
- * @brief SKY66112 operating modes
+ * @brief Set SKY66112 CSD pin state
  * 
- * Modes are defined according to Table 6 in the SKY66112-11 datasheet
- */
-typedef enum {
-    SKY66112_MODE_SLEEP,       /**< Mode 0: Sleep mode (all off) */
-    SKY66112_MODE_RX_LNA,      /**< Mode 1: Receive LNA mode */
-    SKY66112_MODE_TX_HIGH,     /**< Mode 2: Transmit high-power mode (+21 dBm) */
-    SKY66112_MODE_TX_LOW,      /**< Mode 3: Transmit low-power mode (+16 dBm) */
-    SKY66112_MODE_RX_BYPASS,   /**< Mode 4: Receive bypass mode */
-    SKY66112_MODE_TX_BYPASS    /**< Mode 5: Transmit bypass mode */
-} Sky66112Mode;
-
-/**
- * @brief SKY66112 antenna selection
- */
-typedef enum {
-    SKY66112_ANT1,           /**< Antenna 1 */
-    SKY66112_ANT2            /**< Antenna 2 */
-} Sky66112Antenna;
-
-/**
- * @brief SKY66112 device configuration structure
- */
-struct sky66112_config {
-    /** GPIO for chip shutdown control (CSD) */
-    struct gpio_dt_spec csd_gpio;
-    
-    /** GPIO for PA/LNA vs bypass mode selection (CPS) */
-    struct gpio_dt_spec cps_gpio;
-    
-    /** GPIO for receive enable (CRX) */
-    struct gpio_dt_spec crx_gpio;
-    
-    /** GPIO for transmit enable (CTX) */
-    struct gpio_dt_spec ctx_gpio;
-    
-    /** GPIO for power mode selection (CHL) */
-    struct gpio_dt_spec chl_gpio;
-    
-    /** GPIO for antenna selection (ANT_SEL) */
-    struct gpio_dt_spec ant_sel_gpio;
-};
-
-/**
- * @brief SKY66112 device data structure
- */
-struct sky66112_data {
-    /** Current operating mode */
-    Sky66112Mode current_mode;
-    
-    /** Currently selected antenna */
-    Sky66112Antenna current_antenna;
-};
-
-/**
- * @brief Initialize the SKY66112 device
+ * Controls Chip Shutdown pin:
+ * 0 = Shutdown mode (disabled)
+ * 1 = Active mode (enabled)
  *
- * @param dev Device pointer to the SKY66112 device
- * @return 0 if successful, negative errno code otherwise
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-int sky66112Init(const struct device *dev);
+int sky66112SetCsd(uint8_t state);
 
 /**
- * @brief Set the SKY66112 operating mode
+ * @brief Set SKY66112 CPS pin state
+ * 
+ * Controls Power Select pin:
+ * 0 = Bypass/low-power gain path
+ * 1 = LNA path (receive mode)
  *
- * @param dev Device pointer to the SKY66112 device
- * @param mode Desired operating mode
- * @return 0 if successful, negative errno code otherwise
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-int sky66112SetMode(const struct device *dev, Sky66112Mode mode);
+int sky66112SetCps(uint8_t state);
 
 /**
- * @brief Get the current SKY66112 operating mode
+ * @brief Set SKY66112 CRX pin state
+ * 
+ * Controls Receive Enable pin:
+ * 0 = Receive disabled
+ * 1 = Receive enabled
  *
- * @param dev Device pointer to the SKY66112 device
- * @return Current operating mode
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-Sky66112Mode sky66112GetMode(const struct device *dev);
+int sky66112SetCrx(uint8_t state);
 
 /**
- * @brief Select antenna to use
+ * @brief Set SKY66112 CTX pin state
+ * 
+ * Controls Transmit Enable pin:
+ * 0 = Transmit disabled
+ * 1 = Transmit enabled
  *
- * @param dev Device pointer to the SKY66112 device
- * @param antenna Antenna to select
- * @return 0 if successful, negative errno code otherwise
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-int sky66112SelectAntenna(const struct device *dev, Sky66112Antenna antenna);
+int sky66112SetCtx(uint8_t state);
 
 /**
- * @brief Get the currently selected antenna
+ * @brief Set SKY66112 CHL pin state
+ * 
+ * Controls High/Low Power Select pin:
+ * 0 = Low-power mode
+ * 1 = High-power mode
  *
- * @param dev Device pointer to the SKY66112 device
- * @return Currently selected antenna
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-Sky66112Antenna sky66112GetAntenna(const struct device *dev);
+int sky66112SetChl(uint8_t state);
 
 /**
- * @brief Get the TX gain for the current mode
+ * @brief Set SKY66112 ANT_SEL pin state
+ * 
+ * Controls Antenna Select pin:
+ * 0 = Antenna 1 selected
+ * 1 = Antenna 2 selected
  *
- * @param dev Device pointer to the SKY66112 device
- * @return TX gain in dB, or 0 if not in TX mode
+ * @param state The state to set (0 or 1)
+ * @return 0 on success, negative errno on failure
  */
-uint8_t sky66112GetTxGain(const struct device *dev);
+int sky66112SetAntSel(uint8_t state);
 
 /**
- * @brief Get the RX gain
+ * @brief Set SKY66112 to Transmit Low-Power Mode (Mode 3)
  *
- * @param dev Device pointer to the SKY66112 device
- * @return RX gain in dB, or 0 if not in RX mode
+ * Mode 3 settings (Vcc1 = 1.8 V, Vcc2 = 3.0 V, Vdd = 3.0 V, TA = +25 °C):
+ *  CSD  = 1 (enable chip)
+ *  CPS  = 0 (bypass/low-power gain)
+ *  CRX  = 0 (disable receive)
+ *  CTX  = 1 (enable transmit)
+ *  CHL  = 0 (low-power mode)
+ *
+ * @return 0 on success
  */
-uint8_t sky66112GetRxGain(const struct device *dev);
+int sky66112EnableLowPowerTx(void);
 
 /**
- * @brief API implementation for Zephyr PM device control
+ * @brief Select Antenna 1
+ *
+ * ANT1 port enabled: ANT_SEL = 0 (Vcc1 = 1.8 V, Vcc2 = 3.0 V, Vdd = 3.0 V, TA = +25 °C)
+ *
+ * @return 0 on success
  */
-int sky66112PmControl(const struct device *dev, enum pm_device_action action);
+int sky66112SelectAntenna1(void);
+
+/**
+ * @brief FEM operating modes
+ */
+#define SKY66112_MODE_SHUTDOWN    0  /* Device in shutdown (disabled) */
+#define SKY66112_MODE_RECEIVE     1  /* Receive mode */
+#define SKY66112_MODE_TX_HIGHPWR  2  /* Transmit high-power mode */
+#define SKY66112_MODE_TX_LOWPWR   3  /* Transmit low-power mode */
+#define SKY66112_MODE_BYPASS      4  /* Bypass mode (direct path) */
 
 #endif /* SKY66112_H_ */
