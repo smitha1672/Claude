@@ -1,5 +1,5 @@
 /**
- * @file shell_blt_gpio.c
+ * @file shell_blt_fem_gpio.c
  * @brief Shell commands for Board Level Testing of SKY66112 FEM GPIO functionality
  *
  * Copyright (c) 2025 Motive
@@ -218,44 +218,67 @@ static int cmd_fem_modes(const struct shell *shell, size_t argc, char **argv)
 }
 
 /**
- * @brief Command handler for setting all FEM pins at once
+ * @brief Command handler for setting all FEM pins at once (following DTS GPIO pin order)
  */
 static int cmd_fem_all_pins(const struct shell *shell, size_t argc, char **argv)
 {
     if (argc != 7) {
-        shell_error(shell, "Usage: %s <csd> <cps> <crx> <ctx> <chl> <ant_sel>", argv[0]);
+        shell_error(shell, "Usage: %s <cps> <ctx> <chl> <ant_sel> <csd> <crx>", argv[0]);
         shell_print(shell, "All values should be 0 or 1");
+        shell_print(shell, "Order follows GPIO pin numbers: P2.03, P2.04, P2.05, P2.08, P2.09, P2.10");
         return -EINVAL;
     }
 
-    uint8_t csd = atoi(argv[1]);
-    uint8_t cps = atoi(argv[2]);
-    uint8_t crx = atoi(argv[3]);
-    uint8_t ctx = atoi(argv[4]);
-    uint8_t chl = atoi(argv[5]);
-    uint8_t ant_sel = atoi(argv[6]);
+    /* Order matches GPIO pin numbers in DTS */
+    uint8_t cps = atoi(argv[1]);     /* P2.03 */
+    uint8_t ctx = atoi(argv[2]);     /* P2.04 */
+    uint8_t chl = atoi(argv[3]);     /* P2.05 */
+    uint8_t ant_sel = atoi(argv[4]); /* P2.08 */
+    uint8_t csd = atoi(argv[5]);     /* P2.09 */
+    uint8_t crx = atoi(argv[6]);     /* P2.10 */
 
     /* Check all values are valid */
-    if ((csd != 0 && csd != 1) || 
-        (cps != 0 && cps != 1) ||
-        (crx != 0 && crx != 1) ||
+    if ((cps != 0 && cps != 1) ||
         (ctx != 0 && ctx != 1) ||
         (chl != 0 && chl != 1) ||
-        (ant_sel != 0 && ant_sel != 1)) {
+        (ant_sel != 0 && ant_sel != 1) ||
+        (csd != 0 && csd != 1) ||
+        (crx != 0 && crx != 1)) {
         shell_error(shell, "Invalid state value(s). All must be 0 or 1");
         return -EINVAL;
     }
 
     /* Set all pins */
-    sky66112SetCsd(csd);
     sky66112SetCps(cps);
-    sky66112SetCrx(crx);
     sky66112SetCtx(ctx);
     sky66112SetChl(chl);
     sky66112SetAntSel(ant_sel);
+    sky66112SetCsd(csd);
+    sky66112SetCrx(crx);
 
-    shell_print(shell, "SKY66112 pins set: CSD=%d, CPS=%d, CRX=%d, CTX=%d, CHL=%d, ANT_SEL=%d",
-                csd, cps, crx, ctx, chl, ant_sel);
+    shell_print(shell, "SKY66112 pins set:");
+    shell_print(shell, "  CPS     = %d (P2.03: PA/LNA vs bypass mode selection)", cps);
+    shell_print(shell, "  CTX     = %d (P2.04: Transmit enable)", ctx);
+    shell_print(shell, "  CHL     = %d (P2.05: Power mode selection)", chl);
+    shell_print(shell, "  ANT_SEL = %d (P2.08: Antenna %d selected)", ant_sel, ant_sel == 0 ? 1 : 2);
+    shell_print(shell, "  CSD     = %d (P2.09: Chip shutdown control)", csd);
+    shell_print(shell, "  CRX     = %d (P2.10: Receive enable)", crx);
+    
+    /* Detect which mode this configuration corresponds to */
+    if (csd == 0) {
+        shell_print(shell, "FEM Mode: Shutdown (Mode 0)");
+    } else if (cps == 1 && crx == 1 && ctx == 0) {
+        shell_print(shell, "FEM Mode: Receive (Mode 1) - RX gain: +11 dB");
+    } else if (cps == 0 && crx == 0 && ctx == 1 && chl == 1) {
+        shell_print(shell, "FEM Mode: Transmit High-Power (Mode 2) - TX gain: +21 dBm");
+    } else if (cps == 0 && crx == 0 && ctx == 1 && chl == 0) {
+        shell_print(shell, "FEM Mode: Transmit Low-Power (Mode 3) - TX gain: +16 dBm");
+    } else if (cps == 0 && crx == 0 && ctx == 0) {
+        shell_print(shell, "FEM Mode: Bypass (Mode 4)");
+    } else {
+        shell_print(shell, "FEM Mode: Non-standard configuration");
+    }
+    
     return 0;
 }
 
@@ -274,4 +297,4 @@ SHELL_STATIC_SUBCMD_SET_CREATE(blt_gpio_test_cmds,
 );
 
 /* Register the command */
-SHELL_CMD_REGISTER(blt_gpio, &blt_gpio_test_cmds, "Board Level Test: GPIO functions", NULL);
+SHELL_CMD_REGISTER(blt_fem_gpio, &blt_fem_gpio_test_cmds, "Board Level Test: GPIO functions", NULL);
