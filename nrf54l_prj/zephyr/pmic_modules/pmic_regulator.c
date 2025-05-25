@@ -5,16 +5,18 @@
  * @copyright: Copyright (c) 2025 Motive Technologies, Inc. All rights reserved.
  */
 
-#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/mfd/npm2100.h>
 #include <zephyr/drivers/regulator.h>
 
+LOG_MODULE_REGISTER(pmic_regulator, LOG_LEVEL_DBG);
+
 static const struct device *pmic = DEVICE_DT_GET(DT_NODELABEL(npm2100_pmic));
 static const struct device *regulators = DEVICE_DT_GET(DT_NODELABEL(npm2100_regulators));
 
-static void event_callback(const struct device *dev, struct gpio_callback *cb, uint32_t events)
+__weak void event_callback(const struct device *dev, struct gpio_callback *cb, uint32_t events)
 {
 	static int64_t press_t;
 
@@ -26,10 +28,10 @@ static void event_callback(const struct device *dev, struct gpio_callback *cb, u
 		int64_t delta_t = k_uptime_get() - press_t;
 
 		if (delta_t < PRESS_SHORT_MS) {
-			printk("Short press\n");
+			LOG_DBG("Short press");
 			flash_time_ms = FLASH_FAST_MS;
 		} else if (delta_t < PRESS_MEDIUM_MS) {
-			printk("Medium press\n");
+			LOG_DBG("Medium press");
 			flash_time_ms = FLASH_SLOW_MS;
 		} else {
 			shipmode = true;
@@ -43,12 +45,12 @@ static bool configure_events(void)
 	static struct gpio_callback event_cb;
 
 	if (!device_is_ready(pmic)) {
-		printk("Error: PMIC device not ready.\n");
+		LOG_DBG("Error: PMIC device not ready.");
 		return false;
 	}
 
 	if (!device_is_ready(regulators)) {
-		printk("Error: Regulator device not ready.\n");
+		LOG_DBG("Error: Regulator device not ready.");
 		return false;
 	}
 
@@ -59,7 +61,7 @@ static bool configure_events(void)
 	ret = mfd_npm2100_add_callback(pmic, &event_cb);
 
 	if (ret < 0) {
-		printk("Error: failed to add a PMIC event callback.\n");
+		LOG_DBG("Error: failed to add a PMIC event callback.");
 		return false;
 	}
 
