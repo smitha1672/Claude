@@ -7,7 +7,7 @@
 **SDK**: Nordic nRF Connect SDK v3.0.0  
 **RTOS**: Nordic Zephyr v4.0.99-ncs1  
 
-## Overview
+## 1. Overview
 
 The BC2 firmware is an embedded system designed for BLE beacon devices using Nordic's nRF54L15/nRF54L10 chipset with Zephyr RTOS. The firmware provides comprehensive hardware validation, RF testing capabilities, and production-ready beacon functionality.
 
@@ -25,13 +25,13 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 | Feature | nRF54L15 | nRF54L10 |
 |---------|----------|----------|
 | Flash Memory | 1.5 MB | 1.0 MB |
-| RAM Memory | 256 KB | 128 KB |
+| RAM Memory | 256 KB | 128:quick KB |
 | Pin Compatibility | Yes | Yes (Same pinout) |
 | Firmware Support | Yes | Planned |
 
 ---
 
-## Firmware Architecture
+## 2. Firmware Architecture
 
 ### Project Structure
 
@@ -131,4 +131,52 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 
 ---
 
-## Build Environment Setup
+## 3. Applications Overview
+
+There are 2 applications:
+
+### APP_BLT
+
+This application is used for board level testing. Here is a shell commands quick reference. The commands can validate which component is not working.
+
+#### Shell Commands Reference
+
+| Category | Command Pattern | Description |
+|----------|----------------|-------------|
+| Bluetooth | blt_bt {operation} | Beacon advertising and FOTA |
+| FEM Control | blt_fem_gpio {pin\|mode} | SKY66112 RF front-end control |
+| Power Management | blt_pmic {function} | nPM2100 power operations |
+| Real-Time Clock | blt_rtc {operation} | PCF85063A time functions |
+| System Power | blt_pm {operation} | nRF54L power states |
+| Factory/Test | blt_fat {operation} | Manufacturing and test functions |
+
+
+### APP_RF_DirectTestMode
+
+This application provides RF certification testing capabilities and integrates with nRF Connect for Desktop's Direct Test Mode for RF validation and compliance testing.
+
+---
+
+## 4. Build Environment Setup
+
+### Prerequisites and Dependencies
+
+#### Docker Installation
+
+For instructions on installing Docker on Ubuntu, see the [official Docker documentation](https://docs.docker.com/engine/install/ubuntu/).
+
+#### Docker Image Setup
+
+Under `bc_hbii/Dockerfile`: when you run `./run.sh get_sdk bc_hbii`, the source code will be pulled from Motive git repository and the following tools will be installed in a Docker image:
+
+| Tool | Version |
+|------|---------|
+| West | 1.3.0 |
+| J-Link | V8.18 |
+| nrfutil sdk-manager | 1.2.0 |
+| nRF Connect SDK | v3.0.0 |
+| nrfutil device | 2.10.0 |
+| mcumgr | (binary provided) |
+| Zephyr SDK | (included with nRF Connect SDK v3.0.0) |
+
+---
