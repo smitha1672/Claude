@@ -2,7 +2,7 @@
 
 **Company**: Motive  
 **Project**: Beacon V2 (BC2)  
-**Board**: beacon_v2_nrf54l15  
+**Board**: beacon_v2_nrf54l15/nrf54l10(Planned)  
 **Microcontroller**: nRF54L15/nRF54L10  
 **SDK**: Nordic nRF Connect SDK v3.0.0  
 **RTOS**: Nordic Zephyr v4.0.99-ncs1  
@@ -45,7 +45,7 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 │   └── motive
 │       ├── beacon_v2            # Main board definition
 │       └── beacon_v2_overlay    # Board configuration overlays
-├── drivers                      # Hardware drivers
+├── drivers                      # Out-of-tree Hardware drivers
 │   ├── fem                      # Front-End Module driver
 │   ├── gpio                     # GPIO driver
 │   ├── mfd                      # Multi-Function Device driver
@@ -54,7 +54,7 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 │   ├── sensor                   # Sensor drivers
 │   │   └── npm2100_vbat         # nPM2100 battery voltage sensor
 │   └── watchdog                 # Watchdog timer driver
-├── dts                          # Device Tree Source files
+├── dts
 │   └── bindings                 # Device tree bindings
 │       ├── fem
 │       ├── gpio
