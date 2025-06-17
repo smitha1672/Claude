@@ -135,6 +135,8 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 
 There are 2 applications:
 
+> **Recommendation**: If you need to create a new application, APP_BLT can be copied and used as a template for APP_<target purpose> (e.g., APP_ReliabilityTest, APP_Production, APP_Calibration).
+
 ### APP_BLT
 
 This application is used for board level testing. Here is a shell commands quick reference. The commands can validate which component is not working.
