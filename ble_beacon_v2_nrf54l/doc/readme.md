@@ -25,7 +25,7 @@ The BC2 firmware is an embedded system designed for BLE beacon devices using Nor
 | Feature | nRF54L15 | nRF54L10 |
 |---------|----------|----------|
 | Flash Memory | 1.5 MB | 1.0 MB |
-| RAM Memory | 256 KB | 128:quick KB |
+| RAM Memory | 256 KB | 128 KB |
 | Pin Compatibility | Yes | Yes (Same pinout) |
 | Firmware Support | Yes | Planned |
 
@@ -152,7 +152,6 @@ This application is used for board level testing. Here is a shell commands quick
 | System Power | blt_pm {operation} | nRF54L power states |
 | Factory/Test | blt_fat {operation} | Manufacturing and test functions |
 
-
 ### APP_RF_DirectTestMode
 
 This application provides RF certification testing capabilities and integrates with nRF Connect for Desktop's Direct Test Mode for RF validation and compliance testing.
@@ -180,5 +179,64 @@ Under `bc_hbii/Dockerfile`: when you run `./run.sh get_sdk bc_hbii`, the source 
 | nrfutil device | 2.10.0 |
 | mcumgr | (binary provided) |
 | Zephyr SDK | (included with nRF Connect SDK v3.0.0) |
+
+---
+
+## 5. Build & Flash
+
+Under `embedded/` directory:
+
+### APP_BLT
+
+#### Build Code
+
+```bash
+./run.sh build_blt bc_hbii
+```
+
+When the build is complete, the following files will be generated and copied to:
+
+```text
+.../bc_hbii/deploy/Beacon_unsigned/APP_BLT/v0100/BC_HBII_BLT_0100_B21A.bin
+.../bc_hbii/deploy/Beacon_unsigned/APP_BLT/v0100/BC_HBII_BLT_0100_B21A.hex
+.../bc_hbii/deploy/Beacon_unsigned/APP_BLT/v0100/BC_HBII_BLT_0100_B21A.zip
+```
+
+> **Note**: The `.hex` file can be used to update the BC2 board via nRF Connect for Desktop Programmer.
+
+**Build Directory Structure:**
+```
+build/
+├── APP_BLT/
+├── CMakeFiles/
+├── Kconfig
+├── mcuboot/
+├── modules/
+├── _sysbuild/
+└── zephyr/
+```
+
+#### Flash Image
+
+```bash
+./run.sh flash bc_hbii
+```
+
+> **Note**: This command uses `west` to update the image to the connected device.
+
+
+### APP_RF_DirectTestMode  
+
+#### Build Code
+
+```bash
+./run.sh build_dtm bc_hbii
+...
+
+#### Flash Image
+
+```bash
+./run.sh flash bc_hbii
+```
 
 ---
