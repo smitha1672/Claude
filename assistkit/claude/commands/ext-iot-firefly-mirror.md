@@ -33,5 +33,10 @@ Steps:
 
 Examples:
   /ext-iot-firefly-mirror feature/IOT-456-fix-parser
+    → /home/smith/workspace/code_worktree/iot-firefly-ext/IOT-456
+
   /ext-iot-firefly-mirror bugfix/FIRE-789-fix-issue
+    → /home/smith/workspace/code_worktree/iot-firefly-ext/FIRE-789
+
   /ext-iot-firefly-mirror IOT-123-my-feature
+    → /home/smith/workspace/code_worktree/iot-firefly-ext/IOT-123
