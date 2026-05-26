@@ -2,7 +2,7 @@ Mirror an existing remote branch into a new git worktree.
 
 Repo: git@github.com:KeepTruckin/iot-firefly-ext.git
 Main repo path: /home/smith/workspace/code/iot-firefly-ext
-Worktree root:  /home/smith/workspace/code_worktree
+Worktree root:  /home/smith/workspace/code_worktree/iot-firefly-ext
 
 Usage:
   /ext-iot-firefly-mirror <remote-branch>
@@ -20,12 +20,12 @@ Steps:
 3a. If the local branch does not yet exist, create it tracking the remote:
     git -C /home/smith/workspace/code/iot-firefly-ext worktree add --track \
       -b <remote-branch> \
-      /home/smith/workspace/code_worktree/<JIRA-ID>/iot-firefly-ext \
+      /home/smith/workspace/code_worktree/iot-firefly-ext/<JIRA-ID> \
       upstream/<remote-branch>
 
 3b. If the local branch already exists, check it out directly:
     git -C /home/smith/workspace/code/iot-firefly-ext worktree add \
-      /home/smith/workspace/code_worktree/<JIRA-ID>/iot-firefly-ext \
+      /home/smith/workspace/code_worktree/iot-firefly-ext/<JIRA-ID> \
       <remote-branch>
 
 4. Confirm:
