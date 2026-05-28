@@ -32,6 +32,11 @@ Steps:
    git -C /home/smith/workspace/code/KeepTruckin/kt worktree list
 
 Examples:
-  /kt-worktree-mirror <type> feature/DEVPRD-456-fix-fleet-parser
-  /kt-worktree-mirror bugfix/ABC-789-fix-issue
-  /kt-worktree-mirror DEVPRD-123-my-feature
+  /kt-worktree-mirror mirror feature/DEVPRD-456-fix-fleet-parser
+    → /home/smith/workspace/code_worktree/mirror/DEVPRD-456/kt
+
+  /kt-worktree-mirror mirror bugfix/ABC-789-fix-issue
+    → /home/smith/workspace/code_worktree/mirror/ABC-789/kt
+
+  /kt-worktree-mirror mirror DEVPRD-123-my-feature
+    → /home/smith/workspace/code_worktree/mirror/DEVPRD-123/kt

@@ -16,7 +16,7 @@ Steps:
    # add --force if the worktree has uncommitted changes
 
 2. Delete the local branch:
-   feature/bugfix/hotfix: git -C /home/smith/workspace/code/iot-firefly-ext branch -d <type>/<JIRA-ID>-<short-description>
+   feature/bugfix/hotfix/mirror: git -C /home/smith/workspace/code/iot-firefly-ext branch -d <type>/<JIRA-ID>-<short-description>
    none:                  git -C /home/smith/workspace/code/iot-firefly-ext branch -d <JIRA-ID>-<short-description>
 
 3. Prune stale references:

@@ -8,6 +8,7 @@ Branch naming rules:
   feature/JIRA-ID-short-description   ← new feature
   bugfix/JIRA-ID-short-description    ← bug fix
   hotfix/JIRA-ID-short-description    ← critical production fix
+  mirror/JIRA-ID-short-description    ← mirrored branch
   JIRA-ID-short-description           ← general / no prefix
 
 Usage:
@@ -18,11 +19,13 @@ Usage:
 
   type:              feature | bugfix | hotfix | mirror | none
   JIRA-ID:           optional — if omitted, <short-description> is used as the worktree folder name and branch suffix
+  short-description: the slug appended after the JIRA-ID in the branch name (e.g. fix-fleet-parser)
 
 Cases:
 
 1. New branch from HEAD:
    git -C /home/smith/workspace/code/KeepTruckin/kt worktree add /home/smith/workspace/code_worktree/<type>/<JIRA-ID or short-description>/kt -b <type>/<JIRA-ID>-<short-description>
+   # for none type: -b <JIRA-ID>-<short-description>  (no prefix)
 
    Examples:
    /worktree-add feature DEVPRD-456 fix-fleet-parser
@@ -34,6 +37,7 @@ Cases:
 2. New branch based on a remote branch:
    git -C /home/smith/workspace/code/KeepTruckin/kt fetch upstream
    git -C /home/smith/workspace/code/KeepTruckin/kt worktree add /home/smith/workspace/code_worktree/<type>/<JIRA-ID or short-description>/kt -b <type>/<JIRA-ID>-<short-description> upstream/<remote-branch>
+   # for none type: -b <JIRA-ID>-<short-description>  (no prefix)
 
    Example:
    /worktree-add feature DEVPRD-456 fix-fleet-parser from upstream/release-2.1
