@@ -13,39 +13,43 @@ Branch naming rules:
 Usage:
   /worktree-add <type> <JIRA-ID> <short-description>
   /worktree-add <type> <JIRA-ID> <short-description> from <remote-branch>
+  /worktree-add <type> <short-description>
+  /worktree-add <type> <short-description> from <remote-branch>
 
-  type: feature | bugfix | hotfix | none
+  type:              feature | bugfix | hotfix | mirror | none
+  JIRA-ID:           optional — if omitted, <short-description> is used as the worktree folder name and branch suffix
 
 Cases:
 
 1. New branch from HEAD:
-   git worktree add /home/smith/workspace/code_worktree/$JIRA-ID/kt -b $type/$JIRA-ID-$short-description
+   git -C /home/smith/workspace/code/KeepTruckin/kt worktree add /home/smith/workspace/code_worktree/<type>/<JIRA-ID or short-description>/kt -b <type>/<JIRA-ID>-<short-description>
 
    Examples:
    /worktree-add feature DEVPRD-456 fix-fleet-parser
    /worktree-add bugfix ABC-456 fix-issue
    /worktree-add hotfix PROD-789 critical-fix
    /worktree-add none DEVPRD-456 my-feature
+   /worktree-add feature fix-fleet-parser          ← no JIRA-ID
 
 2. New branch based on a remote branch:
-   git fetch upstream
-   git worktree add /home/smith/workspace/code_worktree/$JIRA-ID/kt -b $type/$JIRA-ID-$short-description upstream/$remote-branch
+   git -C /home/smith/workspace/code/KeepTruckin/kt fetch upstream
+   git -C /home/smith/workspace/code/KeepTruckin/kt worktree add /home/smith/workspace/code_worktree/<type>/<JIRA-ID or short-description>/kt -b <type>/<JIRA-ID>-<short-description> upstream/<remote-branch>
 
    Example:
    /worktree-add feature DEVPRD-456 fix-fleet-parser from upstream/release-2.1
 
 3. Check out remote branch as-is (no rename):
-   git fetch upstream
-   git worktree add /home/smith/workspace/code_worktree/$JIRA-ID/kt upstream/$remote-branch
+   git -C /home/smith/workspace/code/KeepTruckin/kt fetch upstream
+   git -C /home/smith/workspace/code/KeepTruckin/kt worktree add /home/smith/workspace/code_worktree/<type>/<JIRA-ID or short-description>/kt upstream/<remote-branch>
 
    Example:
    /worktree-add none DEVPRD-456 fix-fleet-parser from main
 
 Branch name result per type:
-  feature  → feature/DEVPRD-456-fix-fleet-parser
-  bugfix   → bugfix/DEVPRD-456-fix-fleet-parser
-  hotfix   → hotfix/DEVPRD-456-fix-fleet-parser
-  none     → DEVPRD-456-fix-fleet-parser
+  feature  → feature/DEVPRD-456-fix-fleet-parser  (or feature/fix-fleet-parser if no JIRA-ID)
+  bugfix   → bugfix/DEVPRD-456-fix-fleet-parser   (or bugfix/fix-fleet-parser if no JIRA-ID)
+  hotfix   → hotfix/DEVPRD-456-fix-fleet-parser   (or hotfix/fix-fleet-parser if no JIRA-ID)
+  none     → DEVPRD-456-fix-fleet-parser           (or fix-fleet-parser if no JIRA-ID)
 
 Confirm after any case:
-   git worktree list
+   git -C /home/smith/workspace/code/KeepTruckin/kt worktree list

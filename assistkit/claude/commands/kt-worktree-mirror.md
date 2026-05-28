@@ -5,7 +5,7 @@ Main repo path: /home/smith/workspace/code/KeepTruckin/kt
 Worktree root:  /home/smith/workspace/code_worktree
 
 Usage:
-  /kt-worktree-mirror <remote-branch>
+  /kt-worktree-mirror <type> <remote-branch>
 
   remote-branch: the branch name as it exists on upstream (e.g. feature/DEVPRD-456-fix-fleet-parser)
 
@@ -20,18 +20,18 @@ Steps:
 3a. If the local branch does not yet exist, create it tracking the remote:
     git -C /home/smith/workspace/code/KeepTruckin/kt worktree add --track \
       -b <remote-branch> \
-      /home/smith/workspace/code_worktree/<JIRA-ID>/kt \
+      /home/smith/workspace/code_worktree/<type>/<JIRA-ID>/kt \
       upstream/<remote-branch>
 
 3b. If the local branch already exists, check it out directly:
     git -C /home/smith/workspace/code/KeepTruckin/kt worktree add \
-      /home/smith/workspace/code_worktree/<JIRA-ID>/kt \
+      /home/smith/workspace/code_worktree/<type>/<JIRA-ID>/kt \
       <remote-branch>
 
 4. Confirm:
    git -C /home/smith/workspace/code/KeepTruckin/kt worktree list
 
 Examples:
-  /kt-worktree-mirror feature/DEVPRD-456-fix-fleet-parser
+  /kt-worktree-mirror <type> feature/DEVPRD-456-fix-fleet-parser
   /kt-worktree-mirror bugfix/ABC-789-fix-issue
   /kt-worktree-mirror DEVPRD-123-my-feature
