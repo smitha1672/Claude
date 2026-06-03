@@ -57,4 +57,59 @@ def ds_add_part(part_number: str) -> str:
     Args:
         part_number: The component part number (e.g. MSPM0C1104, BME280).
     """
-    return "ds_add_part: not yet implemented. Use ds_add_pdf to index a local PDF."
+    import os
+    import tempfile
+    import httpx
+
+    part = part_number.strip()
+    p_lower = part.lower()
+
+    candidates = [
+        f"https://www.ti.com/lit/ds/symlink/{p_lower}.pdf",
+        f"https://www.ti.com/lit/ds/symlink/{p_lower}a.pdf",
+        f"https://www.st.com/resource/en/datasheet/{part}.pdf",
+        f"https://www.st.com/resource/en/datasheet/{p_lower}.pdf",
+        f"https://www.nxp.com/docs/en/data-sheet/{part}.pdf",
+        f"https://www.nxp.com/docs/en/data-sheet/{p_lower}.pdf",
+        f"https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-{p_lower}-ds000.pdf",
+    ]
+
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; datasheet-fetcher/1.0)"}
+
+    with httpx.Client(timeout=30, follow_redirects=True) as client:
+        for url in candidates:
+            try:
+                head = client.head(url, headers=headers)
+                if head.status_code != 200:
+                    continue
+                content_type = head.headers.get("content-type", "")
+                if "pdf" not in content_type and not url.endswith(".pdf"):
+                    continue
+
+                resp = client.get(url, headers=headers)
+                if resp.status_code != 200:
+                    continue
+
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+                    f.write(resp.content)
+                    tmp_path = f.name
+
+                try:
+                    chunks, page_count = parse_pdf(tmp_path)
+                    texts = [c["text"] for c in chunks]
+                    embeddings = embed(texts)
+                    part_id = register_part(part, url, page_count, len(chunks))
+                    upsert_chunks(part_id, part, chunks, embeddings)
+                    return f"✓ Fetched from {url}\n✓ Indexed {part}: {page_count} pages, {len(chunks)} chunks."
+                finally:
+                    os.unlink(tmp_path)
+
+            except Exception:
+                continue
+
+    tried = "\n".join(f"  {u}" for u in candidates)
+    return (
+        f"Could not auto-fetch datasheet for '{part}'.\n"
+        f"Tried:\n{tried}\n\n"
+        f"Use ds_add_pdf with a local file instead."
+    )

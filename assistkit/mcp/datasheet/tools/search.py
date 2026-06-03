@@ -44,4 +44,24 @@ def ds_find(part: str, parameter: str) -> str:
         part:      Part name as shown in ds_list.
         parameter: Parameter to look up, e.g. 'operating voltage', 'I2C address'.
     """
-    return "ds_find: not yet implemented. Use ds_search to locate parameters manually."
+    if not get_part(part):
+        return f"Error: part '{part}' not found. Run ds_list to see available parts."
+
+    query = f"{parameter} value specification typical minimum maximum"
+    embedding = embed([query])[0]
+    hits = query_chunks(embedding, n_results=3, part=part)
+
+    if not hits:
+        return f"No results found for '{parameter}' in {part}."
+
+    lines = [f"Part: {part}", f"Parameter: {parameter}", ""]
+    for h in hits:
+        page = f" (p.{h['page']})" if h.get("page") else ""
+        lines.append(f"--- Datasheet{page} ---")
+        lines.append(h["text"].strip()[:400])
+        lines.append("")
+    lines.append(f"Extract the value of '{parameter}' from the sections above.")
+
+    result = "\n".join(lines)
+    log_query("ds_find", parameter, result, part=part)
+    return result
