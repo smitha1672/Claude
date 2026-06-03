@@ -1,7 +1,7 @@
 # assistkit-datasheet-mcp
 
 ## Stack
-- Language: Python 3.11
+- Language: Python 3.10+
 - MCP SDK: mcp[cli] (FastMCP)
 - Vector store: ChromaDB (persistent)
 - PDF parser: PyMuPDF (fitz)
@@ -25,6 +25,6 @@
 - [x] ds_search — semantic search
 - [ ] ds_find, ds_explain, ds_pins, ds_register
 - [ ] ds_add_part — auto-fetch by part number
-- [ ] ds_code — generate driver code
+- [x] ds_code — SDK-aware driver code generation (keyword + part-family file scoring)
 - [ ] ds_compare
 - [ ] ds_export, ds_history, ds_history_clear
