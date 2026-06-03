@@ -23,8 +23,8 @@
 - [x] Scaffold — all tools registered, server starts
 - [x] ds_add_pdf + ds_add_text + ds_list + ds_remove + ds_clear
 - [x] ds_search — semantic search
-- [ ] ds_find, ds_explain, ds_pins, ds_register
-- [ ] ds_add_part — auto-fetch by part number
+- [x] ds_find, ds_explain, ds_pins, ds_register
+- [x] ds_add_part — tries TI/ST/NXP/Bosch URL patterns, falls back to error with tried URLs
 - [x] ds_code — SDK-aware driver code generation (keyword + part-family file scoring)
-- [ ] ds_compare
-- [ ] ds_export, ds_history, ds_history_clear
+- [x] ds_compare
+- [x] ds_export, ds_history, ds_history_clear
