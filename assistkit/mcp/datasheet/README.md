@@ -25,65 +25,176 @@ Verify inside a Claude Code session:
 /mcp
 ```
 
-## Usage
+---
 
-Just talk to Claude naturally — no special syntax needed.
+## Scenarios
+
+### 1. Index a datasheet and search it
 
 ```
-add /path/to/MSPM0C1105.pdf
-add /path/to/MSPM0C1105.pdf with SDK /home/smith/ti/mspm0_sdk_2_09_00_01
-what power modes does MSPM0C1105 support?
-write an I2C init function for MSPM0C1105
-show everything in the pool
+add /home/smith/datasheets/MSPM0C1105.pdf
+```
+```
+what power modes does the MSPM0C1105 support?
+```
+```
+search for how to configure the watchdog timer
+```
+
+---
+
+### 2. Look up a specific parameter
+
+```
+what is the operating voltage range of the MSPM0C1105?
+```
+```
+what is the I2C clock speed in fast mode plus?
+```
+```
+what is the sleep current in STANDBY0 mode?
+```
+
+---
+
+### 3. Understand a spec or timing diagram
+
+```
+explain the MSPM0C1105 startup timing sequence
+```
+```
+explain what STOP0 and STOP2 power modes mean and when to use each
+```
+```
+explain the difference between SLEEP and STANDBY mode
+```
+
+---
+
+### 4. Look up pins
+
+```
+what are the functions of pin PA0 on the MSPM0C1105?
+```
+```
+show all I2C pins on the MSPM0C1105
+```
+```
+which pins support wakeup from SHUTDOWN mode?
+```
+
+---
+
+### 5. Decode a register
+
+```
+describe the PMCTL register on the MSPM0C1105
+```
+```
+decode PMCTL value 0x04 on the MSPM0C1105
+```
+
+---
+
+### 6. Generate driver code with SDK
+
+```
+add /home/smith/datasheets/MSPM0C1105.pdf
+write an I2C controller init function for MSPM0C1105 using SDK /home/smith/ti/mspm0_sdk_2_09_00_01
+```
+```
+write a function to enter STANDBY0 mode on MSPM0C1105 using SDK /home/smith/ti/mspm0_sdk_2_09_00_01
+```
+```
+generate a UART init for 115200 baud on MSPM0C1105 using SDK /home/smith/ti/mspm0_sdk_2_09_00_01
+```
+
+---
+
+### 7. Compare two parts
+
+First, index both:
+```
+add /home/smith/datasheets/MSPM0C1105.pdf
+add /home/smith/datasheets/STM32G031.pdf
+```
+
+Then compare:
+```
+compare MSPM0C1105 and STM32G031
+```
+```
+compare MSPM0C1105 and STM32G031 on flash, RAM, and sleep current
+```
+
+---
+
+### 8. Auto-fetch a datasheet by part number
+
+```
+fetch BME280 datasheet
+```
+```
+fetch MSPM0C1104 datasheet
+```
+
+If the auto-fetch fails, it will tell you which URLs were tried. Use `ds_add_pdf` with a local file as a fallback.
+
+---
+
+### 9. Review query history and export results
+
+```
+show my query history
+```
+```
+show history for MSPM0C1105
+```
+```
+show history for ds_code queries
+```
+```
+export the last result
+```
+
+---
+
+### 10. Manage the pool
+
+```
+list all indexed datasheets
+```
+```
 remove MSPM0C1105
 ```
+```
+clear the entire pool
+```
+
+---
 
 ## Tools
 
-| Tool | Status | Description |
-|------|--------|-------------|
-| `ds_add_pdf` | Done | Parse and index a PDF datasheet; optionally link an SDK folder |
-| `ds_add_text` | Done | Index a raw text snippet |
-| `ds_add_part` | Stub | Auto-fetch datasheet by part number from the web |
-| `ds_list` | Done | List all indexed parts |
-| `ds_remove` | Done | Remove a part from the pool |
-| `ds_clear` | Done | Wipe the entire pool |
-| `ds_search` | Done | Semantic search across all indexed datasheets |
-| `ds_find` | Stub | Extract a specific parameter value (voltage, address, etc.) |
-| `ds_explain` | Stub | Explain a spec or timing diagram in plain English |
-| `ds_pins` | Stub | Look up pin functions and recommended connections |
-| `ds_register` | Stub | Decode a register value using the datasheet register map |
-| `ds_code` | Stub | Generate SDK-aware driver or init code |
-| `ds_compare` | Stub | Compare two parts on key specs |
-| `ds_export` | Done | Save the last query result to a Markdown file |
-| `ds_history` | Done | View past queries, filterable by part or tool |
-| `ds_history_clear` | Done | Clear the query log |
+| Tool | Description |
+|------|-------------|
+| `ds_add_pdf` | Parse and index a PDF datasheet; optionally link an SDK folder |
+| `ds_add_text` | Index a raw text snippet |
+| `ds_add_part` | Auto-fetch datasheet by part number (TI, ST, NXP, Bosch) |
+| `ds_list` | List all indexed parts |
+| `ds_remove` | Remove a part from the pool |
+| `ds_clear` | Wipe the entire pool |
+| `ds_search` | Semantic search across all indexed datasheets |
+| `ds_find` | Extract a specific parameter value (voltage, address, current, etc.) |
+| `ds_explain` | Explain a spec or timing diagram in plain English |
+| `ds_pins` | Look up pin functions and recommended connections |
+| `ds_register` | Decode a register value using the datasheet register map |
+| `ds_code` | Generate SDK-aware C driver or init code |
+| `ds_compare` | Compare two parts on key specs |
+| `ds_export` | Save the last query result to a Markdown file |
+| `ds_history` | View past queries, filterable by part or tool |
+| `ds_history_clear` | Clear the query log |
 
-## ds_code — SDK-aware code generation
-
-`ds_code` searches the datasheet for the relevant section, then scans the linked SDK for matching headers and examples to generate code that uses the real SDK API.
-
-**Step 1 — Index the datasheet and link the SDK:**
-```
-add /home/smith/Public/AssistKit/datasheet/mspm0c1105.pdf
-with SDK /home/smith/ti/mspm0_sdk_2_09_00_01
-```
-
-**Step 2 — Generate code:**
-```
-write an I2C init function for MSPM0C1105
-```
-
-**Example output:**
-```c
-#include "ti/driverlib/driverlib.h"
-
-void I2C0_init(void) {
-    // FM+ mode, 1MHz — from datasheet p.54
-    DL_I2C_setClockConfig(I2C0, DL_I2C_CLOCK_BUSCLK, 31);
-    DL_I2C_enableController(I2C0);
-}
-```
+---
 
 ## Configuration
 
