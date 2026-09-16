@@ -11,5 +11,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+[project.optional-dependencies]
+audio = ["sounddevice>=0.4.6"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["."]

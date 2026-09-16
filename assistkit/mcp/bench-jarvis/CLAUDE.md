@@ -2,8 +2,9 @@
 
 MCP server wrapping the `benchctl` CLI (GW Instek GPP-4323 PSU + Joulescope JS220) as
 callable tools. This is the integration point described in `scratch/Jarvis_MCP_Project_Review.md`
-between Claude Code and the bench hardware — the voice/webcam trigger layer (`/Jarvis`) is a
-separate, not-yet-built piece that will call into these tools once a command is confirmed.
+between Claude Code and the bench hardware. `jarvis_trigger.py` (invoked via the `/Jarvis`
+slash command in `assistkit/claude/commands/Jarvis.md`) manages the mic-capture process
+lifecycle — STT and command dispatch into these MCP tools are not wired in yet.
 
 ## Stack
 - Language: Python 3.10+
@@ -38,7 +39,12 @@ responsible for only passing `confirm=True` after the user has verbally confirme
 
 ## Milestones
 - [x] Scaffold — app/config/server, `core/runner.py` subprocess wrapper, all tools registered
-- [ ] Manual end-to-end test against real PSU/JS220 hardware
-- [ ] Webcam + mic trigger script for `/Jarvis`
+- [x] Manual end-to-end test against real PSU/JS220 hardware — read-only tools, confirm-gate,
+  PSU power on/off round-trip, and JS220 power/capture + profile-apply flows all verified
+- [x] Mic trigger script for `/Jarvis` — `jarvis_trigger.py` start/stop/status, PID-file +
+  SIGTERM lifecycle, continuous `sounddevice` capture, degrades to lifecycle-only when no
+  audio device is present. Webcam capture intentionally deferred (no use case defined yet).
 - [ ] Wire local STT output into Claude Code prompt / these MCP tool calls
-- [ ] `/Jarvis stop` shutdown path
+- [ ] "Hey Jarvis" phrase filter on the transcript
+- [ ] Command dispatch: transcript → MCP tool call, with spoken confirmation before any
+  state-changing call
