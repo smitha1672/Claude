@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Process lifecycle for the /Jarvis trigger: opens continuous mic capture on
-start, transcribes it locally with faster-whisper in fixed-size chunks, and
-releases everything cleanly on stop. Webcam capture is intentionally deferred
-(no use case defined yet, per scratch/Jarvis_MCP_Project_Review.md). The "Hey
-Jarvis" phrase filter and command dispatch into the bench-jarvis MCP tools are
-not wired in yet — transcribed text is only printed/logged for now.
+start, transcribes it locally with faster-whisper in fixed-size chunks, filters
+for a "Hey Jarvis"/"Jarvis" wake phrase, and releases everything cleanly on
+stop. Webcam capture is intentionally deferred (no use case defined yet, per
+scratch/Jarvis_MCP_Project_Review.md). Command dispatch into the bench-jarvis
+MCP tools is not wired in yet — filtered commands are only printed/logged.
 """
 import os
 import queue
+import re
 import signal
 import sys
 import threading
@@ -21,6 +22,11 @@ PID_FILE = RUN_DIR / "jarvis.pid"
 SAMPLE_RATE = 16000
 CHUNK_SECONDS = float(os.getenv("JARVIS_STT_CHUNK_SECONDS", "4"))
 STT_MODEL_SIZE = os.getenv("JARVIS_STT_MODEL", "base.en")
+
+# Matches "jarvis" optionally preceded by "hey" (e.g. "hey jarvis", "okay
+# jarvis," "Jarvis,"). Not anchored to the start — filler words or STT
+# artifacts often precede it in a natural utterance.
+WAKE_PATTERN = re.compile(r"\b(?:hey\s+)?jarvis\b[,.]?\s*", re.IGNORECASE)
 
 try:
     import sounddevice as sd
@@ -79,12 +85,28 @@ def cmd_stop() -> int:
     return 1
 
 
+def _extract_command(text: str) -> str | None:
+    """Return the instruction following the last wake-phrase mention in text,
+    or None if the wake phrase isn't present at all.
+
+    Matches anywhere in the transcript, not just a prefix — natural speech and
+    STT artifacts often put filler before it ("okay, jarvis, turn off channel
+    1"). Uses the last match so an earlier stray "jarvis" in ambient
+    conversation doesn't eat the real command that follows it.
+    """
+    matches = list(WAKE_PATTERN.finditer(text))
+    if not matches:
+        return None
+    return text[matches[-1].end():].strip()
+
+
 def _transcribe_loop(model, audio_queue: "queue.Queue", stop_event: threading.Event) -> None:
-    """Pull mic audio off audio_queue, transcribe it in fixed-size chunks.
+    """Pull mic audio off audio_queue, transcribe it in fixed-size chunks, and
+    filter for the "Hey Jarvis"/"Jarvis" wake phrase.
 
     Chunk-based (not silence/VAD-segmented) — simple first cut. A command can
-    get split across a chunk boundary; that's a known limitation for the "Hey
-    Jarvis" filter / dispatch milestones to account for, not fixed here.
+    get split across a chunk boundary; that's a known limitation for the
+    dispatch milestone to account for, not fixed here.
     """
     samples_per_chunk = int(SAMPLE_RATE * CHUNK_SECONDS)
     buffer = np.empty((0,), dtype="float32")
@@ -100,8 +122,16 @@ def _transcribe_loop(model, audio_queue: "queue.Queue", stop_event: threading.Ev
         audio, buffer = buffer[:samples_per_chunk], buffer[samples_per_chunk:]
         segments, _ = model.transcribe(audio, language="en")
         text = " ".join(seg.text.strip() for seg in segments).strip()
-        if text:
-            print(f"[jarvis heard] {text}", flush=True)
+        if not text:
+            continue
+
+        command = _extract_command(text)
+        if command is None:
+            print(f"[jarvis] discarded (no wake phrase): {text}", file=sys.stderr, flush=True)
+        elif command:
+            print(f"[jarvis heard] {command}", flush=True)
+        else:
+            print("[jarvis] heard wake phrase with no command", flush=True)
 
 
 def _on_audio_factory(audio_queue: "queue.Queue"):

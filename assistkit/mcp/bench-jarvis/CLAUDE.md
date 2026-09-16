@@ -4,8 +4,9 @@ MCP server wrapping the `benchctl` CLI (GW Instek GPP-4323 PSU + Joulescope JS22
 callable tools. This is the integration point described in `scratch/Jarvis_MCP_Project_Review.md`
 between Claude Code and the bench hardware. `jarvis_trigger.py` (invoked via the `/Jarvis`
 slash command in `assistkit/claude/commands/Jarvis.md`) manages the mic-capture process
-lifecycle and transcribes locally with faster-whisper — command dispatch into these MCP
-tools (with a "Hey Jarvis" phrase filter and spoken confirmation) is not wired in yet.
+lifecycle, transcribes locally with faster-whisper, and filters for a "Hey Jarvis" wake
+phrase — command dispatch into these MCP tools (with spoken confirmation) is not wired
+in yet.
 
 ## Stack
 - Language: Python 3.10+
@@ -47,9 +48,14 @@ responsible for only passing `confirm=True` after the user has verbally confirme
   audio device is present. Webcam capture intentionally deferred (no use case defined yet).
 - [x] Local STT wired into the trigger script — faster-whisper (`JARVIS_STT_MODEL`, default
   `base.en`) runs on fixed `JARVIS_STT_CHUNK_SECONDS`-second chunks (default 4s) off a
-  background thread, printing `[jarvis heard] ...` lines. Chunk-based, not VAD-segmented —
-  a command can still get split across a chunk boundary. Degrades to capture-only (no
-  transcription) when `faster-whisper` isn't installed.
-- [ ] "Hey Jarvis" phrase filter on the transcript
-- [ ] Command dispatch: transcript → MCP tool call, with spoken confirmation before any
-  state-changing call
+  background thread. Chunk-based, not VAD-segmented — a command can still get split
+  across a chunk boundary. Degrades to capture-only (no transcription) when
+  `faster-whisper` isn't installed.
+- [x] "Hey Jarvis" phrase filter — `_extract_command` (regex `WAKE_PATTERN`) matches
+  "jarvis"/"hey jarvis" anywhere in a chunk's transcript (not just as a prefix — filler
+  and STT artifacts commonly precede it), uses the *last* match so a stray earlier mention
+  doesn't eat the real command. No match → discarded to stderr as `[jarvis] discarded ...`
+  (not treated as a command); match found → the text after it is printed to stdout as
+  `[jarvis heard] ...`, which is what the dispatch milestone below will consume.
+- [ ] Command dispatch: `[jarvis heard]` text → MCP tool call, with spoken confirmation
+  before any state-changing call
