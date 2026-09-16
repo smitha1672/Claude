@@ -4,9 +4,9 @@ MCP server wrapping the `benchctl` CLI (GW Instek GPP-4323 PSU + Joulescope JS22
 callable tools. This is the integration point described in `scratch/Jarvis_MCP_Project_Review.md`
 between Claude Code and the bench hardware. `jarvis_trigger.py` (invoked via the `/Jarvis`
 slash command in `assistkit/claude/commands/Jarvis.md`) manages the mic-capture process
-lifecycle, transcribes locally with faster-whisper, and filters for a "Hey Jarvis" wake
-phrase — command dispatch into these MCP tools (with spoken confirmation) is not wired
-in yet.
+lifecycle, transcribes locally with faster-whisper, filters for a "Hey Jarvis" wake phrase,
+and dispatches the result to these MCP tools directly (same process, no MCP transport) —
+with a printed spoken-confirmation prompt before any state-changing call.
 
 ## Stack
 - Language: Python 3.10+
@@ -36,8 +36,9 @@ Every state-changing tool (PSU `set`/`power`/`protect`/`profile_apply`, JS220
 `power`/`capture`/`config`/`profile_apply`, `sequence_run`) takes a `confirm: bool = False`
 parameter and refuses to run unless it's explicitly `True`. Read-only tools (`measure`,
 `status`, `info`, `list`, profile `list`/`show`) execute immediately. This mirrors the design
-doc's confirmation-gate requirement — the caller (eventually the Jarvis voice dispatcher) is
-responsible for only passing `confirm=True` after the user has verbally confirmed the action.
+doc's confirmation-gate requirement — the caller (`jarvis_trigger.py`'s dispatch loop, or a
+human) is responsible for only passing `confirm=True` after the user has verbally
+confirmed the action.
 
 ## Milestones
 - [x] Scaffold — app/config/server, `core/runner.py` subprocess wrapper, all tools registered
@@ -57,5 +58,14 @@ responsible for only passing `confirm=True` after the user has verbally confirme
   doesn't eat the real command. No match → discarded to stderr as `[jarvis] discarded ...`
   (not treated as a command); match found → the text after it is printed to stdout as
   `[jarvis heard] ...`, which is what the dispatch milestone below will consume.
-- [ ] Command dispatch: `[jarvis heard]` text → MCP tool call, with spoken confirmation
-  before any state-changing call
+- [x] Command dispatch — `COMMAND_PATTERNS`/`_parse_command` is a fast-path regex parser
+  for the small set of commands from the design review's "Voice → CLI mapping" examples
+  (not general NLU), calling the `tools/psu.py`/`tools/js220.py` functions directly.
+  Read-only commands dispatch immediately; state-changing ones print
+  `[jarvis] about to ...` and wait up to `JARVIS_CONFIRM_TIMEOUT_CHUNKS` chunks (default
+  3) for a yes/no reply on a later chunk (no wake phrase needed for the reply itself) —
+  no reply times out to cancelled. JS220 `power off` is never dispatched with `force=True`
+  from voice, so a misheard command can't disconnect the DUT; that stays a text/CLI-only
+  action. There's no TTS yet, so "spoken back" is a printed line and "verbal yes" is
+  whatever the next transcribed chunk says — both need a real voice loop to validate,
+  see below.

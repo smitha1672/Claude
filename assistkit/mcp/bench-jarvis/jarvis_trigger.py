@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Process lifecycle for the /Jarvis trigger: opens continuous mic capture on
 start, transcribes it locally with faster-whisper in fixed-size chunks, filters
-for a "Hey Jarvis"/"Jarvis" wake phrase, and releases everything cleanly on
-stop. Webcam capture is intentionally deferred (no use case defined yet, per
-scratch/Jarvis_MCP_Project_Review.md). Command dispatch into the bench-jarvis
-MCP tools is not wired in yet — filtered commands are only printed/logged.
+for a "Hey Jarvis"/"Jarvis" wake phrase, parses the result into a bench-jarvis
+MCP tool call, speaks back (prints) a confirmation prompt before any
+state-changing call, and releases everything cleanly on stop. Webcam capture
+is intentionally deferred (no use case defined yet, per
+scratch/Jarvis_MCP_Project_Review.md).
 """
 import os
 import queue
@@ -22,11 +23,17 @@ PID_FILE = RUN_DIR / "jarvis.pid"
 SAMPLE_RATE = 16000
 CHUNK_SECONDS = float(os.getenv("JARVIS_STT_CHUNK_SECONDS", "4"))
 STT_MODEL_SIZE = os.getenv("JARVIS_STT_MODEL", "base.en")
+# How many transcribed chunks to wait for a yes/no reply before cancelling a
+# pending state-changing command.
+CONFIRM_TIMEOUT_CHUNKS = int(os.getenv("JARVIS_CONFIRM_TIMEOUT_CHUNKS", "3"))
 
 # Matches "jarvis" optionally preceded by "hey" (e.g. "hey jarvis", "okay
 # jarvis," "Jarvis,"). Not anchored to the start — filler words or STT
 # artifacts often precede it in a natural utterance.
 WAKE_PATTERN = re.compile(r"\b(?:hey\s+)?jarvis\b[,.]?\s*", re.IGNORECASE)
+
+AFFIRM_WORDS = ("yes", "yeah", "yep", "confirm", "confirmed", "do it", "go ahead")
+DENY_WORDS = ("no", "nope", "cancel", "stop", "never mind", "nevermind")
 
 try:
     import sounddevice as sd
@@ -41,6 +48,9 @@ try:
 except ImportError:
     np = None
     WhisperModel = None
+
+from tools.js220 import js220_info, js220_list, js220_power
+from tools.psu import psu_measure, psu_power, psu_profile_apply, psu_status
 
 
 def _is_running(pid: int) -> bool:
@@ -100,16 +110,122 @@ def _extract_command(text: str) -> str | None:
     return text[matches[-1].end():].strip()
 
 
-def _transcribe_loop(model, audio_queue: "queue.Queue", stop_event: threading.Event) -> None:
-    """Pull mic audio off audio_queue, transcribe it in fixed-size chunks, and
-    filter for the "Hey Jarvis"/"Jarvis" wake phrase.
+def _contains_word(text: str, words: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    return any(re.search(rf"\b{re.escape(w)}\b", lowered) for w in words)
 
-    Chunk-based (not silence/VAD-segmented) — simple first cut. A command can
-    get split across a chunk boundary; that's a known limitation for the
-    dispatch milestone to account for, not fixed here.
+
+# Fast-path parser for the small set of well-defined voice commands from the
+# design review's "Voice → CLI mapping" examples — not general NLU. Each
+# builder takes the regex match and returns a dict: description (spoken back
+# before confirming), stateful (whether it touches hardware), and call(confirm)
+# invoking the actual bench-jarvis MCP tool function directly (same process,
+# no MCP transport needed).
+COMMAND_PATTERNS = [
+    (
+        re.compile(r"^(?:power|turn) on (?:psu )?channel (\d)$", re.I),
+        lambda m: {
+            "description": f"power on PSU channel {m.group(1)}",
+            "stateful": True,
+            "call": lambda confirm: psu_power(state="on", channel=int(m.group(1)), confirm=confirm),
+        },
+    ),
+    (
+        re.compile(r"^(?:power|turn) off (?:psu )?channel (\d)$", re.I),
+        lambda m: {
+            "description": f"power off PSU channel {m.group(1)}",
+            "stateful": True,
+            "call": lambda confirm: psu_power(state="off", channel=int(m.group(1)), confirm=confirm),
+        },
+    ),
+    (
+        re.compile(r"^(?:what'?s|what is) the (?:voltage|current|power) on channel (\d)$", re.I),
+        lambda m: {
+            "description": f"measure PSU channel {m.group(1)}",
+            "stateful": False,
+            "call": lambda confirm: psu_measure(channel=int(m.group(1))),
+        },
+    ),
+    (
+        re.compile(r"^(?:check )?channel (\d) status$", re.I),
+        lambda m: {
+            "description": f"check PSU channel {m.group(1)} status",
+            "stateful": False,
+            "call": lambda confirm: psu_status(channel=int(m.group(1))),
+        },
+    ),
+    (
+        re.compile(r"^(?:run|apply) (?:the )?profile (\S+)(?: on channel (\d))?$", re.I),
+        lambda m: {
+            "description": f"apply PSU profile '{m.group(1)}'"
+            + (f" on channel {m.group(2)}" if m.group(2) else ""),
+            "stateful": True,
+            "call": lambda confirm: psu_profile_apply(
+                name=m.group(1), channel=int(m.group(2)) if m.group(2) else 0, confirm=confirm
+            ),
+        },
+    ),
+    (
+        re.compile(r"^(?:power|turn) on (?:the )?js220$", re.I),
+        lambda m: {
+            "description": "power on JS220",
+            "stateful": True,
+            "call": lambda confirm: js220_power(state="on", confirm=confirm),
+        },
+    ),
+    (
+        # JS220 power off never passes force=True here — a misheard voice
+        # command must not be able to disconnect the DUT. Force-disconnect is
+        # a text/CLI-only action per the design review.
+        re.compile(r"^(?:power|turn) off (?:the )?js220$", re.I),
+        lambda m: {
+            "description": "power off JS220",
+            "stateful": True,
+            "call": lambda confirm: js220_power(state="off", confirm=confirm),
+        },
+    ),
+    (
+        re.compile(r"^list (?:the )?js220(?: devices)?$", re.I),
+        lambda m: {
+            "description": "list JS220 devices",
+            "stateful": False,
+            "call": lambda confirm: js220_list(),
+        },
+    ),
+    (
+        re.compile(r"^(?:js220 )?(?:info|status)$", re.I),
+        lambda m: {
+            "description": "show JS220 info",
+            "stateful": False,
+            "call": lambda confirm: js220_info(),
+        },
+    ),
+]
+
+
+def _parse_command(command: str):
+    normalized = command.strip().rstrip(".!?").lower()
+    for pattern, builder in COMMAND_PATTERNS:
+        m = pattern.match(normalized)
+        if m:
+            return builder(m)
+    return None
+
+
+def _transcribe_loop(model, audio_queue: "queue.Queue", stop_event: threading.Event) -> None:
+    """Pull mic audio off audio_queue, transcribe it in fixed-size chunks,
+    filter for the "Hey Jarvis"/"Jarvis" wake phrase, parse it into an MCP
+    tool call, and dispatch it — state-changing calls only after a confirmed
+    yes/no reply on a later chunk (no wake phrase needed for that reply, since
+    it's a continuation of the same exchange).
+
+    Chunk-based (not silence/VAD-segmented) — simple first cut. A command (or
+    a confirmation reply) can still get split across a chunk boundary.
     """
     samples_per_chunk = int(SAMPLE_RATE * CHUNK_SECONDS)
     buffer = np.empty((0,), dtype="float32")
+    pending = None  # dict from a COMMAND_PATTERNS builder, awaiting yes/no
+    pending_ttl = 0
 
     while not stop_event.is_set():
         try:
@@ -125,13 +241,52 @@ def _transcribe_loop(model, audio_queue: "queue.Queue", stop_event: threading.Ev
         if not text:
             continue
 
+        if pending is not None:
+            if _contains_word(text, AFFIRM_WORDS):
+                print(f"[jarvis] confirmed: {pending['description']}", flush=True)
+                print(pending["call"](True), flush=True)
+                pending = None
+            elif _contains_word(text, DENY_WORDS):
+                print(f"[jarvis] cancelled: {pending['description']}", flush=True)
+                pending = None
+            else:
+                pending_ttl -= 1
+                if pending_ttl <= 0:
+                    print(
+                        f"[jarvis] confirmation timed out, cancelled: {pending['description']}",
+                        flush=True,
+                    )
+                    pending = None
+                else:
+                    print(
+                        f"[jarvis] still waiting for confirmation (say 'yes' or 'no'): "
+                        f"{pending['description']}",
+                        flush=True,
+                    )
+            continue
+
         command = _extract_command(text)
         if command is None:
             print(f"[jarvis] discarded (no wake phrase): {text}", file=sys.stderr, flush=True)
-        elif command:
-            print(f"[jarvis heard] {command}", flush=True)
-        else:
+            continue
+        if not command:
             print("[jarvis] heard wake phrase with no command", flush=True)
+            continue
+
+        parsed = _parse_command(command)
+        if parsed is None:
+            print(f"[jarvis] didn't recognize command: {command}", flush=True)
+            continue
+
+        if parsed["stateful"]:
+            pending = parsed
+            pending_ttl = CONFIRM_TIMEOUT_CHUNKS
+            print(
+                f"[jarvis] about to {parsed['description']} — say 'yes'/'confirm' or 'no'/'cancel'.",
+                flush=True,
+            )
+        else:
+            print(parsed["call"](False), flush=True)
 
 
 def _on_audio_factory(audio_queue: "queue.Queue"):

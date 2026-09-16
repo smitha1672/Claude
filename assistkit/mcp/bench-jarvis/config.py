@@ -1,8 +1,10 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = Path(__file__).parent
+load_dotenv(BASE_DIR / ".env")
 
 BENCHCTL_BIN = os.getenv("BENCHCTL_BIN", "benchctl")
 BENCHCTL_CONFIG = os.getenv("BENCHCTL_CONFIG", "")
