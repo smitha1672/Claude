@@ -1,5 +1,5 @@
 #!/bin/bash
-SRC=/home/smith/workspace/Claude/assistkit/claude/commands
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/claude/commands"
 DST=/home/smith/.claude/commands
 
 mkdir -p $DST
