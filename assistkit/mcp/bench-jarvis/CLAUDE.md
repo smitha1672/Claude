@@ -17,6 +17,10 @@ separate, not-yet-built piece that will call into these tools once a command is 
 - Start server: `python server.py`
 - Install deps: `pip install -e .`
 - `benchctl` must be on `PATH`, or set `BENCHCTL_BIN` in `.env` to its full path.
+- Set `BENCHCTL_CWD` in `.env` to the `benchctl` repo root (or wherever its `config/` dir
+  lives) — benchctl resolves relative defaults like `config/psu_profiles.toml` against the
+  process's working directory, not its install location, so without this the profile/config
+  tools fail unless the MCP server happens to be launched from that directory.
 
 ## Conventions
 - Commit format: `feat(JIRA-ID): description`

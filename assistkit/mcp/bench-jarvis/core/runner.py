@@ -1,7 +1,7 @@
 import json
 import subprocess
 
-from config import BENCHCTL_BIN
+from config import BENCHCTL_BIN, BENCHCTL_CWD
 
 
 class BenchctlError(Exception):
@@ -22,6 +22,7 @@ def run_benchctl(args: list[str]):
         [BENCHCTL_BIN, *args, "--json"],
         capture_output=True,
         text=True,
+        cwd=BENCHCTL_CWD,
     )
     if proc.returncode != 0:
         message = proc.stderr.strip() or f"benchctl exited with code {proc.returncode}"
